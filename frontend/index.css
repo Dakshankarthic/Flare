@@ -1,0 +1,732 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* ===================================================================
+   DESIGN TOKENS — Deep Space Dark Theme with Solar Accents
+   =================================================================== */
+
+:root {
+    /* Background layers */
+    --bg-deepest:    #04060e;
+    --bg-deep:       #080c1a;
+    --bg-surface:    #0d1225;
+    --bg-elevated:   #131935;
+    --bg-card:       rgba(16, 22, 50, 0.85);
+    
+    /* Solar accent colors */
+    --solar-amber:    #FFB347;
+    --solar-gold:     #FFC857;
+    --solar-orange:   #FF8C42;
+    --solar-red:      #FF4B4B;
+    --electric-cyan:  #00E5FF;
+    --cool-blue:      #4DA8DA;
+    --nebula-purple:  #7C5CFC;
+    
+    /* Flare class colors */
+    --class-a: #4CAF50;
+    --class-b: #2196F3;
+    --class-c: #FF9800;
+    --class-m: #FF5722;
+    --class-x: #F44336;
+    
+    /* Text */
+    --text-primary:   #E8ECF4;
+    --text-secondary: #8892A8;
+    --text-muted:     #5A6380;
+    --text-accent:    #FFB347;
+    
+    /* Glass effects */
+    --glass-bg:       rgba(13, 18, 37, 0.75);
+    --glass-border:   rgba(255, 179, 71, 0.12);
+    --glass-border-2: rgba(0, 229, 255, 0.10);
+    --glass-blur:     12px;
+    
+    /* Shadows */
+    --shadow-sm:  0 2px 8px rgba(0,0,0,0.3);
+    --shadow-md:  0 4px 20px rgba(0,0,0,0.4);
+    --shadow-lg:  0 8px 40px rgba(0,0,0,0.5);
+    --shadow-glow-amber: 0 0 20px rgba(255, 179, 71, 0.15);
+    --shadow-glow-cyan:  0 0 20px rgba(0, 229, 255, 0.15);
+    
+    /* Spacing */
+    --sp-xs: 4px;
+    --sp-sm: 8px;
+    --sp-md: 16px;
+    --sp-lg: 24px;
+    --sp-xl: 32px;
+    --sp-2xl: 48px;
+    
+    /* Border radius */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+    --radius-full: 9999px;
+    
+    /* Transitions */
+    --transition-fast: 150ms ease;
+    --transition-base: 250ms ease;
+    --transition-slow: 400ms ease;
+}
+
+/* ===================================================================
+   RESET & BASE
+   =================================================================== */
+
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 14px;
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-deepest);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Starfield background */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background:
+        radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.15) 0%, transparent 100%),
+        radial-gradient(1px 1px at 30% 50%, rgba(255,255,255,0.1) 0%, transparent 100%),
+        radial-gradient(1px 1px at 50% 10%, rgba(255,255,255,0.12) 0%, transparent 100%),
+        radial-gradient(1px 1px at 70% 70%, rgba(255,255,255,0.08) 0%, transparent 100%),
+        radial-gradient(1px 1px at 90% 30%, rgba(255,255,255,0.1) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 15% 80%, rgba(255,179,71,0.2) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 85% 15%, rgba(0,229,255,0.15) 0%, transparent 100%);
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* ===================================================================
+   HEADER
+   =================================================================== */
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--sp-md) var(--sp-xl);
+    background: linear-gradient(180deg, rgba(13,18,37,0.95), rgba(8,12,26,0.85));
+    border-bottom: 1px solid var(--glass-border);
+    backdrop-filter: blur(var(--glass-blur));
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-md);
+}
+
+.header-logo {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--solar-amber), var(--solar-orange));
+    box-shadow: 0 0 15px rgba(255,179,71,0.4), 0 0 30px rgba(255,140,66,0.2);
+    animation: pulse-glow 3s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 15px rgba(255,179,71,0.4), 0 0 30px rgba(255,140,66,0.2); }
+    50% { box-shadow: 0 0 25px rgba(255,179,71,0.6), 0 0 45px rgba(255,140,66,0.3); }
+}
+
+.header-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--solar-amber), var(--solar-gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 0.5px;
+}
+
+.header-subtitle {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.header-status {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-lg);
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-sm);
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--class-a);
+    animation: blink-green 2s ease-in-out infinite;
+}
+
+.status-dot.warning { background: var(--solar-orange); animation: blink-orange 1.5s ease-in-out infinite; }
+.status-dot.danger { background: var(--solar-red); animation: blink-red 0.8s ease-in-out infinite; }
+
+@keyframes blink-green { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes blink-orange { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+@keyframes blink-red { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+.clock {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    color: var(--electric-cyan);
+    font-weight: 500;
+}
+
+/* ===================================================================
+   MAIN LAYOUT — CSS Grid
+   =================================================================== */
+
+.main-container {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    grid-template-rows: auto auto auto;
+    gap: var(--sp-md);
+    padding: var(--sp-md) var(--sp-xl);
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+/* ===================================================================
+   GLASS CARD — Universal panel style
+   =================================================================== */
+
+.glass-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    backdrop-filter: blur(var(--glass-blur));
+    padding: var(--sp-lg);
+    transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.glass-card:hover {
+    border-color: rgba(255, 179, 71, 0.2);
+    box-shadow: var(--shadow-glow-amber);
+}
+
+.glass-card.cyan-accent {
+    border-color: var(--glass-border-2);
+}
+
+.glass-card.cyan-accent:hover {
+    border-color: rgba(0, 229, 255, 0.2);
+    box-shadow: var(--shadow-glow-cyan);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--sp-md);
+}
+
+.card-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+}
+
+.card-badge {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.badge-live {
+    background: rgba(76, 175, 80, 0.15);
+    color: var(--class-a);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    animation: badge-pulse 2s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* ===================================================================
+   LIGHT CURVE CHART
+   =================================================================== */
+
+.chart-panel {
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+    min-height: 380px;
+}
+
+.chart-container {
+    position: relative;
+    width: 100%;
+    height: 320px;
+}
+
+.chart-controls {
+    display: flex;
+    gap: var(--sp-sm);
+    margin-top: var(--sp-md);
+}
+
+.chart-btn {
+    padding: 4px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--glass-border);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.chart-btn:hover, .chart-btn.active {
+    background: rgba(255, 179, 71, 0.1);
+    color: var(--solar-amber);
+    border-color: var(--solar-amber);
+}
+
+/* ===================================================================
+   ALERT PANEL (right sidebar)
+   =================================================================== */
+
+.alert-panel {
+    grid-column: 2 / 3;
+    grid-row: 1 / 3;
+    max-height: 680px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-md);
+}
+
+.alert-panel::-webkit-scrollbar {
+    width: 4px;
+}
+.alert-panel::-webkit-scrollbar-track {
+    background: transparent;
+}
+.alert-panel::-webkit-scrollbar-thumb {
+    background: var(--glass-border);
+    border-radius: var(--radius-full);
+}
+
+/* Forecast gauge */
+.forecast-gauge-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--sp-lg) 0;
+}
+
+.gauge-wrapper {
+    position: relative;
+    width: 180px;
+    height: 100px;
+    margin-bottom: var(--sp-md);
+}
+
+.gauge-svg {
+    width: 100%;
+    height: 100%;
+}
+
+.gauge-track {
+    fill: none;
+    stroke: rgba(255,255,255,0.05);
+    stroke-width: 12;
+    stroke-linecap: round;
+}
+
+.gauge-fill {
+    fill: none;
+    stroke: var(--solar-amber);
+    stroke-width: 12;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.5s ease, stroke 0.3s ease;
+}
+
+.gauge-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 2rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.gauge-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+/* Alert cards */
+.alert-item {
+    background: rgba(255, 87, 34, 0.08);
+    border: 1px solid rgba(255, 87, 34, 0.2);
+    border-radius: var(--radius-md);
+    padding: var(--sp-md);
+    animation: alert-slide-in 0.3s ease-out;
+    transition: all var(--transition-base);
+}
+
+.alert-item:hover {
+    border-color: rgba(255, 87, 34, 0.4);
+    transform: translateX(-2px);
+}
+
+@keyframes alert-slide-in {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.alert-class-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-right: var(--sp-sm);
+}
+
+.alert-class-B { background: rgba(33,150,243,0.2); color: var(--class-b); border: 1px solid var(--class-b); }
+.alert-class-C { background: rgba(255,152,0,0.2); color: var(--class-c); border: 1px solid var(--class-c); }
+.alert-class-M { background: rgba(255,87,34,0.2); color: var(--class-m); border: 1px solid var(--class-m); }
+.alert-class-X { background: rgba(244,67,54,0.2); color: var(--class-x); border: 1px solid var(--class-x); box-shadow: 0 0 15px rgba(244,67,54,0.3); }
+
+.alert-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.alert-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.alert-type {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* ===================================================================
+   STATS ROW
+   =================================================================== */
+
+.stats-panel {
+    grid-column: 1 / 2;
+    grid-row: 2 / 3;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--sp-md);
+}
+
+.stat-item {
+    text-align: center;
+    padding: var(--sp-md);
+    background: rgba(255,255,255,0.02);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255,255,255,0.04);
+    transition: all var(--transition-base);
+}
+
+.stat-item:hover {
+    background: rgba(255,179,71,0.05);
+    border-color: rgba(255,179,71,0.15);
+}
+
+.stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.stat-value.good { color: var(--class-a); }
+.stat-value.warning { color: var(--solar-orange); }
+.stat-value.danger { color: var(--solar-red); }
+.stat-value.info { color: var(--electric-cyan); }
+
+.stat-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: var(--sp-xs);
+}
+
+/* ===================================================================
+   CATALOGUE TABLE
+   =================================================================== */
+
+.catalogue-panel {
+    grid-column: 1 / 3;
+    grid-row: 3 / 4;
+}
+
+.catalogue-table-wrapper {
+    overflow-x: auto;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.catalogue-table-wrapper::-webkit-scrollbar {
+    height: 4px;
+    width: 4px;
+}
+.catalogue-table-wrapper::-webkit-scrollbar-track { background: transparent; }
+.catalogue-table-wrapper::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 2px; }
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+
+thead th {
+    position: sticky;
+    top: 0;
+    background: var(--bg-surface);
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.7rem;
+    padding: var(--sp-sm) var(--sp-md);
+    text-align: left;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+tbody tr {
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    transition: background var(--transition-fast);
+}
+
+tbody tr:hover {
+    background: rgba(255,179,71,0.04);
+}
+
+td {
+    padding: var(--sp-sm) var(--sp-md);
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+}
+
+.class-pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: var(--radius-full);
+    font-weight: 600;
+    font-size: 0.72rem;
+    text-align: center;
+    min-width: 28px;
+}
+
+.class-pill-B { background: rgba(33,150,243,0.15); color: var(--class-b); }
+.class-pill-C { background: rgba(255,152,0,0.15); color: var(--class-c); }
+.class-pill-M { background: rgba(255,87,34,0.15); color: var(--class-m); }
+.class-pill-X { background: rgba(244,67,54,0.2); color: var(--class-x); }
+.class-pill-A { background: rgba(76,175,80,0.15); color: var(--class-a); }
+
+.conf-bar {
+    display: inline-block;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--solar-amber);
+    transition: width var(--transition-base);
+}
+
+.type-badge {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.type-confirmed { background: rgba(76,175,80,0.15); color: var(--class-a); }
+.type-soft_only { background: rgba(255,179,71,0.15); color: var(--solar-amber); }
+.type-hard_only { background: rgba(0,229,255,0.15); color: var(--electric-cyan); }
+
+/* ===================================================================
+   SPEED CONTROL
+   =================================================================== */
+
+.speed-control {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-sm);
+}
+
+.speed-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 80px;
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    outline: none;
+}
+
+.speed-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--solar-amber);
+    cursor: pointer;
+    box-shadow: 0 0 6px rgba(255,179,71,0.4);
+}
+
+.speed-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* ===================================================================
+   PROGRESS BAR
+   =================================================================== */
+
+.progress-bar-container {
+    width: 100%;
+    height: 3px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 2px;
+    margin-top: var(--sp-sm);
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--electric-cyan), var(--solar-amber));
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+/* ===================================================================
+   LOADING STATE
+   =================================================================== */
+
+.loading-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--bg-deepest);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    transition: opacity 0.5s ease;
+}
+
+.loading-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.loading-spinner {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--solar-amber), var(--solar-orange));
+    box-shadow: 0 0 30px rgba(255,179,71,0.5), 0 0 60px rgba(255,140,66,0.3);
+    animation: loading-pulse 1.5s ease-in-out infinite;
+    margin-bottom: var(--sp-xl);
+}
+
+@keyframes loading-pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 30px rgba(255,179,71,0.5); }
+    50% { transform: scale(1.15); box-shadow: 0 0 50px rgba(255,179,71,0.7), 0 0 80px rgba(255,140,66,0.4); }
+}
+
+.loading-text {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    animation: fade-text 2s ease-in-out infinite;
+}
+
+@keyframes fade-text {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+/* ===================================================================
+   RESPONSIVE
+   =================================================================== */
+
+@media (max-width: 1024px) {
+    .main-container {
+        grid-template-columns: 1fr;
+        padding: var(--sp-md);
+    }
+    
+    .alert-panel {
+        grid-column: 1;
+        grid-row: auto;
+        max-height: 400px;
+    }
+    
+    .catalogue-panel {
+        grid-column: 1;
+    }
+    
+    .header {
+        padding: var(--sp-sm) var(--sp-md);
+        flex-wrap: wrap;
+        gap: var(--sp-sm);
+    }
+}
+
+@media (max-width: 640px) {
+    html { font-size: 12px; }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .chart-container {
+        height: 240px;
+    }
+}

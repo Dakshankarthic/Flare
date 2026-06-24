@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Real-time Solar Flare Nowcasting and Forecasting Dashboard — Aditya-L1 Mission (SoLEXS + HEL1OS)">
+    <title>Solar Flare Pipeline — Aditya-L1</title>
+    <link rel="stylesheet" href="/index.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Initializing Solar Flare Pipeline...</div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-brand">
+            <div class="header-logo" id="solarLogo"></div>
+            <div>
+                <div class="header-title">Solar Flare Pipeline</div>
+                <div class="header-subtitle">Aditya-L1 · SoLEXS + HEL1OS</div>
+            </div>
+        </div>
+        <div class="header-status">
+            <div class="speed-control">
+                <span class="speed-label">Speed</span>
+                <input type="range" class="speed-slider" id="speedSlider" 
+                       min="10" max="500" value="50" step="10">
+                <span class="speed-label" id="speedValue">50×</span>
+            </div>
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Connecting...</span>
+            </div>
+            <div class="clock" id="clockDisplay">--:--:--</div>
+        </div>
+    </header>
+
+    <!-- Main Dashboard -->
+    <main class="main-container">
+
+        <!-- Light Curve Chart Panel -->
+        <section class="glass-card chart-panel" id="chartPanel">
+            <div class="card-header">
+                <span class="card-title">X-Ray Light Curves</span>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <span class="card-badge badge-live" id="liveBadge">● LIVE</span>
+                    <div class="chart-controls">
+                        <button class="chart-btn active" data-view="normalized" onclick="setChartView('normalized')">Normalized</button>
+                        <button class="chart-btn" data-view="raw" onclick="setChartView('raw')">Raw Counts</button>
+                    </div>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="lightCurveChart"></canvas>
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="progressBar" style="width:0%"></div>
+            </div>
+        </section>
+
+        <!-- Alert & Forecast Panel (Right Sidebar) -->
+        <aside class="alert-panel">
+            <!-- Forecast Gauge -->
+            <div class="glass-card cyan-accent">
+                <div class="card-header">
+                    <span class="card-title">Flare Forecast</span>
+                    <span class="card-badge" style="background:rgba(0,229,255,0.1);color:var(--electric-cyan);border:1px solid rgba(0,229,255,0.3);" id="horizonBadge">5 min</span>
+                </div>
+                <div class="forecast-gauge-container">
+                    <div class="gauge-wrapper">
+                        <svg class="gauge-svg" viewBox="0 0 180 100">
+                            <path class="gauge-track" d="M 15 90 A 75 75 0 0 1 165 90" />
+                            <path class="gauge-fill" id="gaugeFill" d="M 15 90 A 75 75 0 0 1 165 90"
+                                  stroke-dasharray="236" stroke-dashoffset="236" />
+                        </svg>
+                    </div>
+                    <div class="gauge-value" id="gaugeValue" style="color:var(--class-a)">0%</div>
+                    <div class="gauge-label">Probability of flare in next <span id="gaugeHorizon">5</span> min</div>
+                </div>
+                
+                <!-- Explainable AI Panel -->
+                <div style="margin: 0 var(--sp-lg) var(--sp-lg) var(--sp-lg); border-top: 1px solid rgba(255,255,255,0.05); padding-top: var(--sp-md);">
+                    <div style="font-size: 0.75rem; color: var(--electric-cyan); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 1px; font-weight: 600;">
+                        🤖 Live AI Reasoning
+                    </div>
+                    <ul id="aiReasoningList" style="list-style-type: none; font-size: 0.75rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 6px; padding-left: 4px;">
+                        <li style="display:flex; gap:6px;"><span style="color:var(--text-muted)">►</span><span>Initializing reasoning engine...</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Recent Alerts -->
+            <div class="glass-card" style="flex:1;overflow-y:auto;">
+                <div class="card-header">
+                    <span class="card-title">Flare Alerts</span>
+                    <span class="card-badge" style="background:rgba(255,87,34,0.1);color:var(--class-m);" id="alertCount">0</span>
+                </div>
+                <div id="alertList" style="display:flex;flex-direction:column;gap:8px;">
+                    <div style="text-align:center;color:var(--text-muted);padding:24px;font-size:0.8rem;">
+                        Waiting for data stream...
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Stats Panel -->
+        <section class="glass-card stats-panel">
+            <div class="card-header">
+                <span class="card-title">Pipeline Metrics</span>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value info" id="statTPR">—</div>
+                    <div class="stat-label">TPR (Recall)</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value good" id="statFAR">—</div>
+                    <div class="stat-label">False Alarm Rate</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value info" id="statTSS">—</div>
+                    <div class="stat-label">TSS</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="statAUC" style="color:var(--nebula-purple)">—</div>
+                    <div class="stat-label">AUC-ROC</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value warning" id="statLeadTime">—</div>
+                    <div class="stat-label">Avg Lead Time</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value info" id="statEvents">0</div>
+                    <div class="stat-label">Flares Detected</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Catalogue Table -->
+        <section class="glass-card catalogue-panel">
+            <div class="card-header">
+                <span class="card-title">Flare Catalogue</span>
+                <span class="card-badge" style="background:rgba(255,255,255,0.05);color:var(--text-secondary);" id="catalogueCount">0 events</span>
+            </div>
+            <div class="catalogue-table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Class</th>
+                            <th>Start (s)</th>
+                            <th>Peak (s)</th>
+                            <th>Duration</th>
+                            <th>Peak Soft</th>
+                            <th>Peak Hard</th>
+                            <th>Type</th>
+                            <th>Confidence</th>
+                            <th>Lead Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="catalogueBody">
+                        <tr>
+                            <td colspan="10" style="text-align:center;color:var(--text-muted);padding:24px;">
+                                Loading catalogue...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="/index.js"></script>
+</body>
+</html>
