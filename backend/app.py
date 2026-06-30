@@ -230,7 +230,7 @@ def initialize_pipeline():
             neural_model, neural_metrics = train_neural_model(
                 processed, flare_events,
                 window_sec=300, stride_sec=60,
-                epochs=30, batch_size=32,
+                epochs=2, batch_size=32,
                 device='cpu', verbose=True
             )
             state['neural_model'] = neural_model
