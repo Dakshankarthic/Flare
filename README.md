@@ -25,6 +25,8 @@ An end-to-end automated pipeline for detecting (nowcasting) and predicting (fore
   - Lead time distribution histogram
   - Neupert Effect physics check (∫HXR vs SXR correlation)
   - Model toggle (XGBoost ↔ CNN-BiLSTM)
+  - Dynamic solar flare animation with particle effects
+  - Real-time data simulation with automatic chart updates
 - **Evaluation**: TPR, FAR, TSS, HSS, Brier Skill Score, lead-time analysis, bootstrap CIs
 
 ## Quick Start
@@ -122,9 +124,7 @@ solar-flare-pipeline/
 │   └── evaluation/
 │       └── metrics.py       # TPR, FAR, TSS, HSS, lead time, bootstrap CIs
 ├── frontend/
-│   ├── index.html           # Dashboard (12 panels)
-│   ├── index.css            # Dark space theme + new panel styles
-│   └── index.js             # Chart.js + WebSocket + new charts
+│   └── index.html           # Dashboard (12 panels) with embedded CSS/JS
 ├── models/                  # Saved model weights
 └── test_pipeline.py         # 10-test end-to-end validation
 ```
