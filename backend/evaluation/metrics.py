@@ -237,3 +237,193 @@ def format_metrics_report(nowcast_metrics: dict, forecast_metrics: dict,
         "=" * 60,
     ]
     return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Per-class confusion matrix (A/B/C/M/X)
+# ---------------------------------------------------------------------------
+
+GOES_CLASSES = ['A', 'B', 'C', 'M', 'X']
+
+
+def compute_per_class_confusion(detected_events: list, ground_truth_events: list,
+                                 tolerance_sec: float = 60.0) -> dict:
+    """
+    Compute a per-class confusion matrix for flare detection.
+
+    Returns:
+        dict with:
+            'matrix': {true_class: {pred_class: count}}
+            'per_class_tpr': {class: tpr}
+            'per_class_far': {class: far}
+            'total': confusion matrix as 2D list
+    """
+    # Build class-level matching
+    class_tp = {c: 0 for c in GOES_CLASSES}
+    class_fp = {c: 0 for c in GOES_CLASSES}
+    class_fn = {c: 0 for c in GOES_CLASSES}
+
+    gt_matched = set()
+
+    for det in detected_events:
+        det_peak = getattr(det, 'peak_time', det.get('peak_time', 0) if isinstance(det, dict) else 0)
+        det_class = getattr(det, 'flare_class', det.get('flare_class', '?') if isinstance(det, dict) else '?')
+
+        matched = False
+        for i, gt in enumerate(ground_truth_events):
+            if i in gt_matched:
+                continue
+            gt_peak = getattr(gt, 'peak_time', gt.get('peak_time', 0) if isinstance(gt, dict) else 0)
+            if abs(det_peak - gt_peak) <= tolerance_sec:
+                gt_class = getattr(gt, 'flare_class', gt.get('flare_class', '?') if isinstance(gt, dict) else '?')
+                if det_class == gt_class:
+                    class_tp[det_class] = class_tp.get(det_class, 0) + 1
+                else:
+                    class_fp[det_class] = class_fp.get(det_class, 0) + 1
+                    class_fn[gt_class] = class_fn.get(gt_class, 0) + 1
+                gt_matched.add(i)
+                matched = True
+                break
+        if not matched:
+            class_fp[det_class] = class_fp.get(det_class, 0) + 1
+
+    for i, gt in enumerate(ground_truth_events):
+        if i not in gt_matched:
+            gt_class = getattr(gt, 'flare_class', gt.get('flare_class', '?') if isinstance(gt, dict) else '?')
+            class_fn[gt_class] = class_fn.get(gt_class, 0) + 1
+
+    per_class_tpr = {}
+    per_class_far = {}
+    for c in GOES_CLASSES:
+        tp_c = class_tp.get(c, 0)
+        fp_c = class_fp.get(c, 0)
+        fn_c = class_fn.get(c, 0)
+        per_class_tpr[c] = tp_c / max(tp_c + fn_c, 1)
+        per_class_far[c] = fp_c / max(fp_c + tp_c, 1)
+
+    return {
+        'class_tp': class_tp,
+        'class_fp': class_fp,
+        'class_fn': class_fn,
+        'per_class_tpr': per_class_tpr,
+        'per_class_far': per_class_far,
+        'classes': GOES_CLASSES,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Reliability Diagram (calibration curve)
+# ---------------------------------------------------------------------------
+
+def compute_reliability_diagram(y_true: np.ndarray, y_prob: np.ndarray,
+                                 n_bins: int = 10) -> dict:
+    """
+    Compute reliability/calibration curve data.
+
+    A well-calibrated model has: predicted probability ≈ observed frequency.
+
+    Returns:
+        dict with 'bin_centers', 'observed_freq', 'bin_counts', 'ece'
+        (Expected Calibration Error)
+    """
+    bin_edges = np.linspace(0, 1, n_bins + 1)
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+    observed_freq = np.zeros(n_bins)
+    avg_predicted = np.zeros(n_bins)
+    bin_counts = np.zeros(n_bins)
+
+    for i in range(n_bins):
+        mask = (y_prob >= bin_edges[i]) & (y_prob < bin_edges[i + 1])
+        if i == n_bins - 1:  # include right edge for last bin
+            mask = (y_prob >= bin_edges[i]) & (y_prob <= bin_edges[i + 1])
+        count = mask.sum()
+        bin_counts[i] = count
+        if count > 0:
+            observed_freq[i] = y_true[mask].mean()
+            avg_predicted[i] = y_prob[mask].mean()
+
+    # Expected Calibration Error
+    total = max(y_prob.shape[0], 1)
+    ece = np.sum(bin_counts * np.abs(observed_freq - avg_predicted)) / total
+
+    return {
+        'bin_centers': bin_centers.tolist(),
+        'observed_freq': observed_freq.tolist(),
+        'avg_predicted': avg_predicted.tolist(),
+        'bin_counts': bin_counts.astype(int).tolist(),
+        'ece': float(ece),
+        'n_bins': n_bins,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Bootstrap Confidence Intervals
+# ---------------------------------------------------------------------------
+
+def bootstrap_metric(y_true: np.ndarray, y_prob: np.ndarray,
+                      metric_fn, n_bootstrap: int = 200,
+                      ci: float = 0.95, seed: int = 42) -> dict:
+    """
+    Compute bootstrap confidence interval for any metric function.
+
+    Args:
+        y_true: ground truth labels
+        y_prob: predicted probabilities or labels
+        metric_fn: function(y_true, y_prob) -> float
+        n_bootstrap: number of bootstrap iterations
+        ci: confidence level (0.95 = 95% CI)
+
+    Returns:
+        dict with 'mean', 'lower', 'upper', 'std'
+    """
+    rng = np.random.default_rng(seed)
+    n = len(y_true)
+    scores = []
+
+    for _ in range(n_bootstrap):
+        idx = rng.choice(n, size=n, replace=True)
+        try:
+            score = metric_fn(y_true[idx], y_prob[idx])
+            if np.isfinite(score):
+                scores.append(score)
+        except (ValueError, ZeroDivisionError):
+            continue
+
+    if not scores:
+        return {'mean': 0.0, 'lower': 0.0, 'upper': 0.0, 'std': 0.0}
+
+    scores = np.array(scores)
+    alpha = 1 - ci
+    return {
+        'mean': float(np.mean(scores)),
+        'lower': float(np.percentile(scores, 100 * alpha / 2)),
+        'upper': float(np.percentile(scores, 100 * (1 - alpha / 2))),
+        'std': float(np.std(scores)),
+    }
+
+
+def compute_all_bootstrap_cis(y_true: np.ndarray, y_prob: np.ndarray,
+                                threshold: float = 0.5) -> dict:
+    """Compute bootstrap CIs for all major forecast metrics."""
+    y_pred = (y_prob >= threshold).astype(int)
+
+    def _tss(yt, yp):
+        yp_bin = (yp >= threshold).astype(int) if yp.max() <= 1.0 else yp
+        tp = ((yp_bin == 1) & (yt == 1)).sum()
+        tn = ((yp_bin == 0) & (yt == 0)).sum()
+        fp = ((yp_bin == 1) & (yt == 0)).sum()
+        fn = ((yp_bin == 0) & (yt == 1)).sum()
+        tpr = tp / max(tp + fn, 1)
+        fpr = fp / max(fp + tn, 1)
+        return tpr - fpr
+
+    def _auc(yt, yp):
+        if len(np.unique(yt)) < 2:
+            return 0.5
+        return roc_auc_score(yt, yp)
+
+    return {
+        'auc_ci': bootstrap_metric(y_true, y_prob, _auc),
+        'tss_ci': bootstrap_metric(y_true, y_prob, _tss),
+    }

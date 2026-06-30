@@ -730,3 +730,224 @@ td {
         height: 240px;
     }
 }
+
+
+/* ===================================================================
+   NEW PANELS — TEJAS Improvement Plan
+   =================================================================== */
+
+/* --- Analysis Row Layout --- */
+.analysis-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-lg);
+    grid-column: 1 / -1;
+}
+
+.analysis-row.triple-row {
+    grid-template-columns: 1fr 1fr 1fr;
+}
+
+@media (max-width: 900px) {
+    .analysis-row,
+    .analysis-row.triple-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* --- Model Toggle --- */
+.model-toggle {
+    display: flex;
+    gap: 2px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    padding: 2px;
+    border: 1px solid rgba(255,255,255,0.06);
+}
+
+.toggle-btn {
+    padding: 4px 12px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.toggle-btn:hover {
+    color: var(--text-secondary);
+    background: rgba(255,255,255,0.05);
+}
+
+.toggle-btn.active {
+    background: linear-gradient(135deg, var(--electric-cyan), var(--cool-blue));
+    color: var(--bg-deepest);
+    font-weight: 600;
+}
+
+/* --- Conformal Prediction Panel --- */
+.conformal-panel { min-height: 200px; }
+
+.conformal-content {
+    padding: 0 var(--sp-lg) var(--sp-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-md);
+}
+
+.conformal-gauge {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.conformal-bar-track {
+    position: relative;
+    height: 28px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.06);
+}
+
+.conformal-bar-fill {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    background: linear-gradient(90deg, var(--class-a), var(--solar-amber));
+    border-radius: 14px;
+    transition: width 0.6s ease;
+    width: 0%;
+}
+
+.conformal-bar-lower,
+.conformal-bar-upper {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 3px;
+    background: var(--electric-cyan);
+    opacity: 0.8;
+    box-shadow: 0 0 8px var(--electric-cyan);
+    transition: left 0.6s ease;
+}
+
+.conformal-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.badge-conformal {
+    background: rgba(0,229,255,0.1) !important;
+    color: var(--electric-cyan) !important;
+    border: 1px solid rgba(0,229,255,0.3) !important;
+}
+
+.conformal-stats {
+    display: flex;
+    gap: var(--sp-md);
+    flex-wrap: wrap;
+}
+
+.conformal-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 100px;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.04);
+}
+
+.conformal-stat-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.conformal-stat-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--electric-cyan);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* --- Confusion Matrix Panel --- */
+.confusion-panel { min-height: 200px; }
+
+.confusion-grid {
+    padding: 0 var(--sp-lg) var(--sp-lg);
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+}
+
+.confusion-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 4px;
+    border-radius: 8px;
+    text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid rgba(255,255,255,0.04);
+}
+
+.confusion-cell:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.confusion-cell .cell-class {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.confusion-cell .cell-tp {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.confusion-cell .cell-tpr {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+/* --- Chart Container Small (for triple-row panels) --- */
+.chart-container-sm {
+    padding: 0 var(--sp-md) var(--sp-md);
+    height: 200px;
+    position: relative;
+}
+
+.chart-container-sm canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* --- Attention Panel --- */
+.attention-panel {
+    background: var(--bg-card);
+}
+
+/* --- Lead Time Panel --- */
+.leadtime-panel {
+    background: var(--bg-card);
+}
+
+/* --- Neupert Panel --- */
+.neupert-panel {
+    background: var(--bg-card);
+}

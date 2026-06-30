@@ -112,6 +112,10 @@
         <section class="glass-card stats-panel">
             <div class="card-header">
                 <span class="card-title">Pipeline Metrics</span>
+                <div class="model-toggle" id="modelToggle">
+                    <button class="toggle-btn active" data-model="xgboost" onclick="setModel('xgboost')">XGBoost</button>
+                    <button class="toggle-btn" data-model="neural" onclick="setModel('neural')">CNN-BiLSTM</button>
+                </div>
             </div>
             <div class="stats-grid">
                 <div class="stat-item">
@@ -140,6 +144,90 @@
                 </div>
             </div>
         </section>
+
+        <!-- New: Conformal Prediction + Confusion Matrix Row -->
+        <div class="analysis-row">
+            <!-- Conformal Prediction Panel -->
+            <section class="glass-card conformal-panel" id="conformalPanel">
+                <div class="card-header">
+                    <span class="card-title">Conformal Prediction</span>
+                    <span class="card-badge badge-conformal" id="conformalBadge">—</span>
+                </div>
+                <div class="conformal-content">
+                    <div class="conformal-gauge">
+                        <div class="conformal-bar-track">
+                            <div class="conformal-bar-fill" id="conformalBarFill"></div>
+                            <div class="conformal-bar-lower" id="conformalBarLower"></div>
+                            <div class="conformal-bar-upper" id="conformalBarUpper"></div>
+                        </div>
+                        <div class="conformal-labels">
+                            <span>0%</span>
+                            <span id="conformalValueLabel">—</span>
+                            <span>100%</span>
+                        </div>
+                    </div>
+                    <div class="conformal-stats" id="conformalStats">
+                        <div class="conformal-stat">
+                            <span class="conformal-stat-label">Coverage Guarantee</span>
+                            <span class="conformal-stat-value" id="confCoverage">≥ 90%</span>
+                        </div>
+                        <div class="conformal-stat">
+                            <span class="conformal-stat-label">Calibration Quantile</span>
+                            <span class="conformal-stat-value" id="confQHat">—</span>
+                        </div>
+                        <div class="conformal-stat">
+                            <span class="conformal-stat-label">Uncertainty</span>
+                            <span class="conformal-stat-value" id="confUncertainty">—</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Per-Class Confusion Matrix -->
+            <section class="glass-card confusion-panel" id="confusionPanel">
+                <div class="card-header">
+                    <span class="card-title">Detection by GOES Class</span>
+                </div>
+                <div class="confusion-grid" id="confusionGrid">
+                    <!-- Populated by JS -->
+                </div>
+            </section>
+        </div>
+
+        <!-- New: Attention Heatmap + Lead Time + Neupert Check Row -->
+        <div class="analysis-row triple-row">
+            <!-- Attention Heatmap -->
+            <section class="glass-card attention-panel" id="attentionPanel">
+                <div class="card-header">
+                    <span class="card-title">NeupertAttention Heatmap</span>
+                    <span class="card-badge" style="background:rgba(156,39,176,0.1);color:#CE93D8;" id="attentionBadge">Physics-Embedded</span>
+                </div>
+                <div class="chart-container-sm">
+                    <canvas id="attentionChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Lead Time Histogram -->
+            <section class="glass-card leadtime-panel" id="leadTimePanel">
+                <div class="card-header">
+                    <span class="card-title">Lead Time Distribution</span>
+                </div>
+                <div class="chart-container-sm">
+                    <canvas id="leadTimeChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Neupert Physics Check -->
+            <section class="glass-card neupert-panel" id="neupertPanel">
+                <div class="card-header">
+                    <span class="card-title">Neupert Effect Check</span>
+                    <span class="card-badge" style="background:rgba(76,175,80,0.1);color:#81C784;" id="neupertCorr">r = —</span>
+                </div>
+                <div class="chart-container-sm">
+                    <canvas id="neupertChart"></canvas>
+                </div>
+            </section>
+        </div>
 
         <!-- Catalogue Table -->
         <section class="glass-card catalogue-panel">

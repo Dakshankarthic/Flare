@@ -532,3 +532,271 @@ function formatTime(seconds) {
     }
     return `${m}:${String(s).padStart(2, '0')}`;
 }
+
+
+// ===================================================================
+// NEW PANELS — TEJAS Improvement Plan
+// ===================================================================
+
+let attentionChart = null;
+let leadTimeChart = null;
+let neupertChart = null;
+
+// --- Conformal Prediction ---
+async function loadConformalData() {
+    try {
+        const res = await fetch(`${API_BASE}/api/conformal`);
+        const data = await res.json();
+        
+        if (data.calibrated) {
+            const badge = document.getElementById('conformalBadge');
+            badge.textContent = `≥ ${((1 - data.alpha) * 100).toFixed(0)}% coverage`;
+            
+            document.getElementById('confCoverage').textContent = 
+                `≥ ${((1 - data.alpha) * 100).toFixed(0)}%`;
+            document.getElementById('confQHat').textContent = 
+                data.q_hat ? data.q_hat.toFixed(3) : '—';
+            
+            if (data.intervals && data.intervals.probabilities) {
+                const probs = data.intervals.probabilities;
+                const lower = data.intervals.lower;
+                const upper = data.intervals.upper;
+                const lastIdx = probs.length - 1;
+                
+                if (lastIdx >= 0) {
+                    const prob = probs[lastIdx] * 100;
+                    const lo = lower[lastIdx] * 100;
+                    const hi = upper[lastIdx] * 100;
+                    
+                    document.getElementById('conformalBarFill').style.width = `${prob}%`;
+                    document.getElementById('conformalBarLower').style.left = `${lo}%`;
+                    document.getElementById('conformalBarUpper').style.left = `${hi}%`;
+                    document.getElementById('conformalValueLabel').textContent = 
+                        `${prob.toFixed(1)}% [${lo.toFixed(1)}–${hi.toFixed(1)}%]`;
+                    document.getElementById('confUncertainty').textContent = 
+                        `±${((hi - lo) / 2).toFixed(1)}%`;
+                }
+            }
+        }
+    } catch (e) { /* silent */ }
+}
+
+// --- Confusion Matrix ---
+async function loadConfusionMatrix() {
+    try {
+        const res = await fetch(`${API_BASE}/api/confusion_matrix`);
+        const data = await res.json();
+        
+        const grid = document.getElementById('confusionGrid');
+        const classes = data.classes || ['A', 'B', 'C', 'M', 'X'];
+        const colors = {
+            'A': 'var(--class-a)', 'B': 'var(--class-b)', 
+            'C': 'var(--class-c)', 'M': 'var(--class-m)', 'X': 'var(--class-x)'
+        };
+        const bgAlphas = {
+            'A': 'rgba(76,175,80,0.1)', 'B': 'rgba(33,150,243,0.1)',
+            'C': 'rgba(255,152,0,0.1)', 'M': 'rgba(255,87,34,0.1)',
+            'X': 'rgba(244,67,54,0.15)'
+        };
+        
+        grid.innerHTML = classes.map(cls => {
+            const tp = (data.class_tp && data.class_tp[cls]) || 0;
+            const fp = (data.class_fp && data.class_fp[cls]) || 0;
+            const fn = (data.class_fn && data.class_fn[cls]) || 0;
+            const tpr = data.per_class_tpr ? (data.per_class_tpr[cls] * 100).toFixed(0) : '—';
+            
+            return `
+                <div class="confusion-cell" style="background:${bgAlphas[cls]};border-color:${colors[cls]}20;">
+                    <span class="cell-class" style="color:${colors[cls]}">${cls}</span>
+                    <span class="cell-tp">${tp} TP / ${fp} FP</span>
+                    <span class="cell-tpr">TPR: ${tpr}%</span>
+                </div>
+            `;
+        }).join('');
+    } catch (e) { /* silent */ }
+}
+
+// --- Attention Heatmap ---
+async function loadAttentionHeatmap() {
+    try {
+        const res = await fetch(`${API_BASE}/api/attention_heatmap?position=${currentPosition}`);
+        const data = await res.json();
+        
+        if (!data.available) {
+            document.getElementById('attentionBadge').textContent = 'Not Available';
+            return;
+        }
+        
+        const ctx = document.getElementById('attentionChart');
+        if (!ctx) return;
+        
+        if (attentionChart) attentionChart.destroy();
+        
+        const importance = data.temporal_importance || [];
+        const labels = importance.map((_, i) => i);
+        
+        attentionChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Attention Weight',
+                    data: importance,
+                    backgroundColor: importance.map(v => {
+                        const intensity = Math.min(v * 5, 1);
+                        return `rgba(156, 39, 176, ${0.2 + intensity * 0.6})`;
+                    }),
+                    borderWidth: 0,
+                    barPercentage: 1.0,
+                    categoryPercentage: 1.0,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { display: false },
+                    y: { 
+                        display: true,
+                        grid: { color: 'rgba(255,255,255,0.04)' },
+                        ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 9 } }
+                    }
+                }
+            }
+        });
+    } catch (e) { /* silent */ }
+}
+
+// --- Lead Time Histogram ---
+async function loadLeadTimeHistogram() {
+    try {
+        const res = await fetch(`${API_BASE}/api/lead_time_histogram`);
+        const data = await res.json();
+        
+        const ctx = document.getElementById('leadTimeChart');
+        if (!ctx || !data.bins || data.bins.length === 0) return;
+        
+        if (leadTimeChart) leadTimeChart.destroy();
+        
+        leadTimeChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.bins.map(b => b.toFixed(1) + 'm'),
+                datasets: [{
+                    label: 'Count',
+                    data: data.counts,
+                    backgroundColor: 'rgba(255, 179, 71, 0.6)',
+                    borderColor: 'rgba(255, 179, 71, 0.9)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 9 } },
+                        title: { display: true, text: 'Lead Time (min)', 
+                                 color: 'rgba(255,255,255,0.3)', font: { size: 9 } }
+                    },
+                    y: {
+                        grid: { color: 'rgba(255,255,255,0.04)' },
+                        ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 9 },
+                                 stepSize: 1 }
+                    }
+                }
+            }
+        });
+    } catch (e) { /* silent */ }
+}
+
+// --- Neupert Physics Check ---
+async function loadNeupertCheck() {
+    try {
+        const res = await fetch(`${API_BASE}/api/neupert_check`);
+        const data = await res.json();
+        
+        if (!data.available) return;
+        
+        document.getElementById('neupertCorr').textContent = 
+            `r = ${data.correlation.toFixed(3)}`;
+        
+        const ctx = document.getElementById('neupertChart');
+        if (!ctx) return;
+        
+        if (neupertChart) neupertChart.destroy();
+        
+        // Create scatter plot data
+        const points = data.hxr_integral.map((x, i) => ({
+            x: x, y: data.sxr_values[i]
+        }));
+        
+        neupertChart = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: '∫HXR vs SXR',
+                    data: points,
+                    backgroundColor: 'rgba(76, 175, 80, 0.3)',
+                    borderColor: 'rgba(76, 175, 80, 0.6)',
+                    pointRadius: 1.5,
+                    pointHoverRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255,255,255,0.04)' },
+                        ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 9 } },
+                        title: { display: true, text: '∫HXR(t)dt', 
+                                 color: 'rgba(255,255,255,0.3)', font: { size: 9 } }
+                    },
+                    y: {
+                        grid: { color: 'rgba(255,255,255,0.04)' },
+                        ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 9 } },
+                        title: { display: true, text: 'SXR(t)', 
+                                 color: 'rgba(255,255,255,0.3)', font: { size: 9 } }
+                    }
+                }
+            }
+        });
+    } catch (e) { /* silent */ }
+}
+
+// --- Model Toggle ---
+async function setModel(model) {
+    try {
+        await fetch(`${API_BASE}/api/set_model?model=${model}`, { method: 'POST' });
+        document.querySelectorAll('.toggle-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.model === model);
+        });
+    } catch (e) { /* silent */ }
+}
+
+// --- Load all new panels ---
+function loadNewPanels() {
+    loadConformalData();
+    loadConfusionMatrix();
+    loadAttentionHeatmap();
+    loadLeadTimeHistogram();
+    loadNeupertCheck();
+}
+
+// Auto-load new panels after initial data
+const _origLoadInitial = window.loadInitialData;
+if (typeof _origLoadInitial === 'function') {
+    window.loadInitialData = async function() {
+        await _origLoadInitial();
+        setTimeout(loadNewPanels, 500);
+    };
+} else {
+    // If loadInitialData isn't globally accessible, load after delay
+    setTimeout(loadNewPanels, 3000);
+}

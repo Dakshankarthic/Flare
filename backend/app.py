@@ -45,11 +45,24 @@ from backend.nowcast.combiner import combine_catalogues, master_catalogue_to_df
 from backend.nowcast.classifier import classify_master_catalogue, get_class_color
 from backend.forecast.features import extract_features, create_labels, FEATURE_COLUMNS
 from backend.forecast.model import XGBoostForecaster
+from backend.forecast.conformal import ConformalFlarePredictor
 from backend.evaluation.metrics import (
     compute_nowcast_metrics, compute_forecast_metrics,
-    compute_lead_time, format_metrics_report
+    compute_lead_time, format_metrics_report,
+    compute_per_class_confusion, compute_reliability_diagram,
+    compute_all_bootstrap_cis
 )
 from backend.catalogue.catalogue import FlareCatalogue
+
+# Optional: Neural model (requires PyTorch)
+try:
+    from backend.forecast.neural_model import (
+        CNNBiLSTMForecaster, train_neural_model,
+        get_attention_weights, prepare_windows, HORIZONS_MIN
+    )
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -81,11 +94,19 @@ state = {
     'processed_df': None,     # preprocessed data
     'nowcast_catalogue': None,
     'forecast_model': None,
+    'neural_model': None,     # CNN-BiLSTM + NeupertAttention
+    'conformal': None,        # Conformal prediction calibrator
     'features_df': None,
     'forecast_probs': None,
+    'conformal_intervals': None,  # (prob, lower, upper) from conformal
+    'attention_weights': None,    # Latest NeupertAttention weights
+    'per_class_confusion': None,  # Per-class confusion matrix
+    'reliability': None,          # Reliability diagram data
+    'bootstrap_cis': None,        # Bootstrap confidence intervals
     'metrics': {},
     'stream_position': 0,     # current position in the data stream
     'catalogue': FlareCatalogue(),
+    'active_model': 'xgboost',  # 'xgboost' or 'neural'
 }
 
 # WebSocket connections
@@ -202,8 +223,49 @@ def initialize_pipeline():
         state['forecast_model'] = None
         state['forecast_probs'] = np.zeros(len(features_df))
     
-    # --- Step 6: Evaluate ---
-    logger.info("\n[6/6] Computing evaluation metrics...")
+    # --- Step 6: Train CNN-BiLSTM (if PyTorch available) ---
+    if HAS_TORCH and flare_events and labels.sum() > 0:
+        logger.info("\n[6/8] Training CNN-BiLSTM + NeupertAttention...")
+        try:
+            neural_model, neural_metrics = train_neural_model(
+                processed, flare_events,
+                window_sec=300, stride_sec=60,
+                epochs=30, batch_size=32,
+                device='cpu', verbose=True
+            )
+            state['neural_model'] = neural_model
+            logger.info(f"  Neural model trained. Best TSS: {neural_metrics.get('best_tss', 0):.3f}")
+        except Exception as e:
+            logger.warning(f"  Neural model training failed: {e}")
+            state['neural_model'] = None
+    else:
+        logger.info("\n[6/8] Skipping CNN-BiLSTM (PyTorch not available or no labels)")
+    
+    # --- Step 7: Calibrate Conformal Prediction ---
+    logger.info("\n[7/8] Calibrating Conformal Prediction...")
+    if state['forecast_model'] and state['forecast_probs'] is not None:
+        try:
+            probs = state['forecast_probs']
+            conformal = ConformalFlarePredictor(alpha=0.1, method='standard')
+            cal_probs_2d = np.stack([1 - probs, probs], axis=1)
+            conformal.calibrate(cal_probs_2d, labels.values.astype(int))
+            state['conformal'] = conformal
+            
+            # Compute intervals for all predictions
+            prob_vals, lower, upper = conformal.predict_intervals_binary(probs)
+            state['conformal_intervals'] = {
+                'probabilities': prob_vals.tolist(),
+                'lower': lower.tolist(),
+                'upper': upper.tolist(),
+            }
+            logger.info(f"  Conformal calibrated: q_hat={conformal.q_hat:.3f}, "
+                        f"coverage guarantee >= {1-conformal.alpha:.0%}")
+        except Exception as e:
+            logger.warning(f"  Conformal calibration failed: {e}")
+            state['conformal'] = None
+    
+    # --- Step 8: Evaluate ---
+    logger.info("\n[8/8] Computing evaluation metrics...")
     
     if flare_events and state['forecast_model']:
         nowcast_metrics = compute_nowcast_metrics(
@@ -227,6 +289,24 @@ def initialize_pipeline():
         
         report = format_metrics_report(nowcast_metrics, forecast_metrics, lead_metrics)
         logger.info("\n" + report)
+        
+        # Per-class confusion matrix
+        state['per_class_confusion'] = compute_per_class_confusion(
+            master_events, flare_events, tolerance_sec=120
+        )
+        
+        # Reliability diagram
+        state['reliability'] = compute_reliability_diagram(
+            labels.values, state['forecast_probs']
+        )
+        
+        # Bootstrap CIs
+        try:
+            state['bootstrap_cis'] = compute_all_bootstrap_cis(
+                labels.values, state['forecast_probs']
+            )
+        except Exception:
+            state['bootstrap_cis'] = None
     else:
         state['metrics'] = {
             'nowcast': {'tpr': 0, 'far': 0, 'f1': 0},
@@ -338,6 +418,144 @@ async def get_feature_importance():
     if state['forecast_model'] is None:
         return []
     return state['forecast_model'].get_feature_importance().to_dict(orient='records')
+
+
+@app.get("/api/confusion_matrix")
+async def get_confusion_matrix():
+    """Get per-class confusion matrix (A/B/C/M/X)."""
+    if state['per_class_confusion'] is None:
+        return {'classes': ['A', 'B', 'C', 'M', 'X'], 'class_tp': {}, 'class_fp': {}, 'class_fn': {}}
+    return state['per_class_confusion']
+
+
+@app.get("/api/conformal")
+async def get_conformal():
+    """Get conformal prediction intervals and coverage stats."""
+    result = {'calibrated': False}
+    if state['conformal'] is not None:
+        result = state['conformal'].get_stats()
+    if state['conformal_intervals'] is not None:
+        result['intervals'] = state['conformal_intervals']
+    return result
+
+
+@app.get("/api/attention_heatmap")
+async def get_attention_heatmap(position: int = Query(0, ge=0)):
+    """Get NeupertAttention weights for a window at the given position."""
+    if state['neural_model'] is None or state['processed_df'] is None:
+        return {'available': False}
+    
+    df = state['processed_df']
+    n = len(df)
+    window_size = 300
+    
+    start = min(position, max(0, n - window_size))
+    end = start + window_size
+    if end > n:
+        return {'available': False}
+    
+    soft = df['soft_norm'].values[start:end]
+    hard = df['hard_norm'].values[start:end]
+    window = np.stack([soft, hard], axis=1)
+    
+    try:
+        attn = get_attention_weights(state['neural_model'], window)
+        # Average across heads and return as 1D temporal importance
+        temporal_importance = attn.mean(axis=(0, 1)).tolist()  # [time]
+        return {
+            'available': True,
+            'temporal_importance': temporal_importance,
+            'position': start,
+            'window_size': window_size,
+        }
+    except Exception as e:
+        return {'available': False, 'error': str(e)}
+
+
+@app.get("/api/lead_time_histogram")
+async def get_lead_time_histogram():
+    """Get lead time distribution for detected flares."""
+    if state['nowcast_catalogue'] is None or state['ground_truth'] is None:
+        return {'bins': [], 'counts': []}
+    
+    catalogue_df = state['nowcast_catalogue']
+    flare_events = state['ground_truth']
+    
+    lead_data = compute_lead_time(
+        [{'time': row['peak_time'] - 60} for _, row in catalogue_df.iterrows()],
+        flare_events
+    )
+    
+    # Create histogram bins
+    lead_times_sec = []
+    for gt in flare_events:
+        gt_peak = getattr(gt, 'peak_time', gt.get('peak_time', 0) if isinstance(gt, dict) else 0)
+        for _, row in catalogue_df.iterrows():
+            lead = gt_peak - (row['peak_time'] - 60)
+            if 0 < lead <= 600:
+                lead_times_sec.append(lead / 60)  # convert to minutes
+    
+    if not lead_times_sec:
+        return {'bins': [], 'counts': [], 'stats': lead_data}
+    
+    counts, bin_edges = np.histogram(lead_times_sec, bins=10, range=(0, 10))
+    bin_centers = ((bin_edges[:-1] + bin_edges[1:]) / 2).tolist()
+    
+    return {
+        'bins': bin_centers,
+        'counts': counts.tolist(),
+        'stats': lead_data,
+    }
+
+
+@app.get("/api/neupert_check")
+async def get_neupert_check():
+    """Physics check: correlation between integral(HXR) and SXR."""
+    if state['processed_df'] is None:
+        return {'available': False}
+    
+    df = state['processed_df']
+    hard = df['hard_norm'].values if 'hard_norm' in df.columns else None
+    soft = df['soft_norm'].values if 'soft_norm' in df.columns else None
+    
+    if hard is None or soft is None:
+        return {'available': False}
+    
+    # Downsample for visualization (every 60th point)
+    step = 60
+    hard_integral = np.cumsum(hard)[::step].tolist()
+    soft_vals = soft[::step].tolist()
+    
+    # Compute correlation
+    corr = float(np.corrcoef(np.cumsum(hard)[::step], soft[::step])[0, 1])
+    
+    return {
+        'available': True,
+        'hxr_integral': hard_integral[:500],  # limit for JSON size
+        'sxr_values': soft_vals[:500],
+        'correlation': corr,
+    }
+
+
+@app.get("/api/reliability")
+async def get_reliability():
+    """Get reliability/calibration diagram data."""
+    return state.get('reliability') or {}
+
+
+@app.get("/api/bootstrap_ci")
+async def get_bootstrap_ci():
+    """Get bootstrap confidence intervals for metrics."""
+    return state.get('bootstrap_cis') or {}
+
+
+@app.post("/api/set_model")
+async def set_active_model(model: str = Query('xgboost')):
+    """Toggle between XGBoost and CNN-BiLSTM models."""
+    if model == 'neural' and state['neural_model'] is None:
+        return {'error': 'Neural model not available', 'active': state['active_model']}
+    state['active_model'] = model
+    return {'active': model}
 
 
 # ---------------------------------------------------------------------------

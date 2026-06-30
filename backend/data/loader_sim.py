@@ -101,6 +101,62 @@ def generate_flare_profile(t: np.ndarray, onset: float, peak_time: float,
     return profile
 
 
+def generate_fred_flare(t: np.ndarray, onset: float, peak_time: float,
+                         end_time: float, peak_amplitude: float,
+                         rise_tau: float, decay_tau: float,
+                         n_thermal_components: int = 3,
+                         rng: np.random.Generator = None) -> np.ndarray:
+    """
+    Generate a FRED (Fast Rise Exponential Decay) flare profile with
+    multi-thermal cooling components.
+
+    Physics:
+      - Rise: exponential (same as basic model)
+      - Decay: sum of N thermal cooling components with different time-scales
+               (Kopp-Poletto radiative cooling from coronal loops)
+      - Each component represents a different temperature plasma
+      - Produces more realistic, multi-peaked decay profiles
+
+    This is a DIFFERENTIATOR: generates physically-constrained synthetic
+    data for pre-training before fine-tuning on real Aditya-L1 data.
+    """
+    if rng is None:
+        rng = np.random.default_rng(42)
+
+    profile = np.zeros_like(t, dtype=np.float64)
+
+    # Rising phase (same as basic)
+    rise_mask = (t >= onset) & (t < peak_time)
+    if np.any(rise_mask):
+        profile[rise_mask] = peak_amplitude * np.exp(
+            -(peak_time - t[rise_mask]) / rise_tau
+        )
+
+    # Multi-thermal decay: sum of N exponential components
+    decay_mask = (t >= peak_time) & (t <= end_time)
+    if np.any(decay_mask):
+        t_decay = t[decay_mask] - peak_time
+
+        for i in range(n_thermal_components):
+            # Each component has a different decay timescale
+            # Hotter components cool faster
+            component_tau = decay_tau * (0.3 + 0.7 * i / max(n_thermal_components - 1, 1))
+            component_amp = peak_amplitude * rng.uniform(0.2, 0.6)
+
+            # Add slight delay for each thermal component (cascading cooling)
+            delay = i * decay_tau * 0.1
+            delayed_t = np.maximum(t_decay - delay, 0)
+
+            profile[decay_mask] += component_amp * np.exp(-delayed_t / component_tau)
+
+        # Normalize so peak matches peak_amplitude
+        peak_val = profile[decay_mask].max() if len(profile[decay_mask]) > 0 else 1.0
+        if peak_val > 0:
+            profile[decay_mask] *= peak_amplitude / peak_val
+
+    return profile
+
+
 def generate_synthetic_data(config: Optional[SimulationConfig] = None) -> tuple:
     """
     Generate synthetic soft and hard X-ray light curves with embedded flares.
