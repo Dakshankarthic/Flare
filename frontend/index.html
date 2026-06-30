@@ -1675,8 +1675,9 @@
     </footer>
 
     <script>
-        const WS_URL = 'ws://localhost:8000/ws/stream';
-        const API_URL = 'http://localhost:8000';
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const WS_URL = `${protocol}//${window.location.host}/ws/stream`;
+        const API_URL = '';
         let ws = null;
         let chartInstances = {};
         let flareCount = 0;
