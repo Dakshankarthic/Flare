@@ -675,8 +675,8 @@ async def websocket_stream(websocket: WebSocket):
                     await websocket.send_json({
                         'type': 'forecast',
                         'probability': prob,
-                        'alert': prob >= threshold,
-                        'threshold': threshold,
+                        'alert': bool(prob >= threshold),
+                        'threshold': float(threshold),
                         'reasons': reasons[:3]
                     })
             

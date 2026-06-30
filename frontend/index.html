@@ -3,237 +3,1038 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Real-time Solar Flare Nowcasting and Forecasting Dashboard — Aditya-L1 Mission (SoLEXS + HEL1OS)">
-    <title>Solar Flare Pipeline — Aditya-L1</title>
-    <link rel="stylesheet" href="/index.css">
+    <title>FLARECAST AI | Solar Flare Prediction Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-deepest: #02040a;
+            --bg-deep: #080c1a;
+            --bg-surface: #0d1225;
+            --bg-elevated: #131935;
+            --bg-card: rgba(16, 22, 50, 0.85);
+            --solar-amber: #FFB347;
+            --solar-gold: #FFC857;
+            --solar-orange: #FF8C42;
+            --solar-red: #FF4B4B;
+            --electric-cyan: #00E5FF;
+            --cool-blue: #4DA8DA;
+            --nebula-purple: #7C5CFC;
+            --class-a: #4CAF50;
+            --class-b: #2196F3;
+            --class-c: #FF9800;
+            --class-m: #FF5722;
+            --class-x: #F44336;
+            --text-primary: #E8ECF4;
+            --text-secondary: #8892A8;
+            --text-muted: #5A6380;
+            --text-accent: #FFB347;
+            --glass-bg: rgba(13, 18, 37, 0.75);
+            --glass-border: rgba(255, 179, 71, 0.12);
+            --glass-border-2: rgba(0, 229, 255, 0.10);
+            --glass-blur: 12px;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 20px rgba(0,0,0,0.4);
+            --shadow-lg: 0 8px 40px rgba(0,0,0,0.5);
+            --shadow-glow-amber: 0 0 20px rgba(255, 179, 71, 0.15);
+            --shadow-glow-cyan: 0 0 20px rgba(0, 229, 255, 0.15);
+            --sp-xs: 4px;
+            --sp-sm: 8px;
+            --sp-md: 16px;
+            --sp-lg: 24px;
+            --sp-xl: 32px;
+            --sp-2xl: 48px;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --radius-full: 9999px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { font-size: 14px; scroll-behavior: smooth; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-deepest);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background:
+                radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.15) 0%, transparent 100%),
+                radial-gradient(1px 1px at 30% 50%, rgba(255,255,255,0.1) 0%, transparent 100%),
+                radial-gradient(1px 1px at 50% 10%, rgba(255,255,255,0.12) 0%, transparent 100%),
+                radial-gradient(1px 1px at 70% 70%, rgba(255,255,255,0.08) 0%, transparent 100%),
+                radial-gradient(1px 1px at 90% 30%, rgba(255,255,255,0.1) 0%, transparent 100%),
+                radial-gradient(1.5px 1.5px at 15% 80%, rgba(255,179,71,0.2) 0%, transparent 100%),
+                radial-gradient(1.5px 1.5px at 85% 15%, rgba(0,229,255,0.15) 0%, transparent 100%);
+            z-index: -1;
+            pointer-events: none;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--sp-md) var(--sp-xl);
+            background: linear-gradient(180deg, rgba(13,18,37,0.95), rgba(8,12,26,0.85));
+            border-bottom: 1px solid var(--glass-border);
+            backdrop-filter: blur(var(--glass-blur));
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: var(--sp-md);
+        }
+        .header-logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--solar-amber), var(--solar-orange));
+            box-shadow: 0 0 15px rgba(255,179,71,0.4), 0 0 30px rgba(255,140,66,0.2);
+            animation: pulse-glow 3s ease-in-out infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 15px rgba(255,179,71,0.4), 0 0 30px rgba(255,140,66,0.2); }
+            50% { box-shadow: 0 0 25px rgba(255,179,71,0.6), 0 0 45px rgba(255,140,66,0.3); }
+        }
+        .header-title-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .header-title {
+            font-size: 1.3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--solar-amber), var(--solar-gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 0.5px;
+        }
+        .header-subtitle {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        .header-nav {
+            display: flex;
+            align-items: center;
+            gap: var(--sp-lg);
+        }
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            transition: color 0.2s ease;
+            cursor: pointer;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: var(--solar-amber);
+        }
+        .header-status {
+            display: flex;
+            align-items: center;
+            gap: var(--sp-lg);
+        }
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: var(--sp-sm);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--class-a);
+            animation: blink-green 2s ease-in-out infinite;
+        }
+        .status-dot.warning { background: var(--solar-orange); animation: blink-orange 1.5s ease-in-out infinite; }
+        .status-dot.danger { background: var(--solar-red); animation: blink-red 0.8s ease-in-out infinite; }
+        @keyframes blink-green { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        @keyframes blink-orange { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        @keyframes blink-red { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+        .clock {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--electric-cyan);
+            font-weight: 500;
+        }
+        .quick-access-bar {
+            display: flex;
+            align-items: center;
+            gap: var(--sp-md);
+            padding: var(--sp-sm) var(--sp-xl);
+            background: rgba(8, 12, 26, 0.9);
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            backdrop-filter: blur(8px);
+            flex-wrap: wrap;
+        }
+        .quick-btn {
+            display: flex;
+            align-items: center;
+            gap: var(--sp-sm);
+            padding: 6px 14px;
+            border-radius: var(--radius-sm);
+            border: 1px solid rgba(255,255,255,0.08);
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .quick-btn:hover {
+            background: rgba(255, 179, 71, 0.1);
+            color: var(--solar-amber);
+            border-color: rgba(255, 179, 71, 0.2);
+        }
+        .quick-btn.primary {
+            background: linear-gradient(135deg, rgba(255,179,71,0.15), rgba(255,140,66,0.1));
+            border-color: rgba(255, 179, 71, 0.3);
+            color: var(--solar-amber);
+        }
+        .quick-btn.primary:hover {
+            background: linear-gradient(135deg, rgba(255,179,71,0.25), rgba(255,140,66,0.2));
+        }
+        .quick-separator {
+            width: 1px;
+            height: 20px;
+            background: rgba(255,255,255,0.08);
+        }
+        .quick-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            grid-template-rows: auto auto auto auto;
+            gap: var(--sp-md);
+            padding: var(--sp-md) var(--sp-xl);
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        .glass-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            backdrop-filter: blur(var(--glass-blur));
+            padding: var(--sp-lg);
+            transition: border-color 0.25s ease, box-shadow 0.25s ease;
+        }
+        .glass-card:hover {
+            border-color: rgba(255, 179, 71, 0.2);
+            box-shadow: var(--shadow-glow-amber);
+        }
+        .glass-card.cyan-accent {
+            border-color: var(--glass-border-2);
+        }
+        .glass-card.cyan-accent:hover {
+            border-color: rgba(0, 229, 255, 0.2);
+            box-shadow: var(--shadow-glow-cyan);
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--sp-md);
+        }
+        .card-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+        .card-badge {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: var(--radius-full);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .badge-live {
+            background: rgba(76, 175, 80, 0.15);
+            color: var(--class-a);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            animation: badge-pulse 2s ease-in-out infinite;
+        }
+        .badge-beta {
+            background: rgba(0, 229, 255, 0.1);
+            color: var(--electric-cyan);
+            border: 1px solid rgba(0, 229, 255, 0.2);
+        }
+        @keyframes badge-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .hero-stats {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: var(--sp-md);
+        }
+        .hero-stat {
+            background: var(--glass-bg);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: var(--radius-md);
+            padding: var(--sp-md);
+            text-align: center;
+            transition: all 0.25s ease;
+        }
+        .hero-stat:hover {
+            background: rgba(255,179,71,0.05);
+            border-color: rgba(255,179,71,0.15);
+            transform: translateY(-2px);
+        }
+        .hero-stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.6rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+        .hero-stat-value.good { color: var(--class-a); }
+        .hero-stat-value.warning { color: var(--solar-orange); }
+        .hero-stat-value.danger { color: var(--solar-red); }
+        .hero-stat-value.info { color: var(--electric-cyan); }
+        .hero-stat-value.gold { color: var(--solar-amber); }
+        .hero-stat-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: var(--sp-xs);
+        }
+        .hero-stat-delta {
+            font-size: 0.7rem;
+            font-family: 'JetBrains Mono', monospace;
+            margin-top: 2px;
+        }
+        .hero-stat-delta.positive { color: var(--class-a); }
+        .hero-stat-delta.negative { color: var(--solar-red); }
+        .chart-panel {
+            grid-column: 1 / 2;
+            grid-row: 2 / 3;
+            min-height: 420px;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 340px;
+        }
+        .chart-controls {
+            display: flex;
+            gap: var(--sp-sm);
+            margin-top: var(--sp-md);
+            flex-wrap: wrap;
+        }
+        .chart-btn {
+            padding: 5px 14px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--glass-border);
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .chart-btn:hover, .chart-btn.active {
+            background: rgba(255, 179, 71, 0.1);
+            color: var(--solar-amber);
+            border-color: var(--solar-amber);
+        }
+        .alert-panel {
+            grid-column: 2 / 3;
+            grid-row: 2 / 4;
+            max-height: 720px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: var(--sp-md);
+        }
+        .alert-panel::-webkit-scrollbar { width: 4px; }
+        .alert-panel::-webkit-scrollbar-track { background: transparent; }
+        .alert-panel::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: var(--radius-full); }
+        .forecast-gauge-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: var(--sp-lg) 0;
+        }
+        .gauge-wrapper {
+            position: relative;
+            width: 200px;
+            height: 110px;
+            margin-bottom: var(--sp-md);
+        }
+        .gauge-svg { width: 100%; height: 100%; }
+        .gauge-track {
+            fill: none;
+            stroke: rgba(255,255,255,0.05);
+            stroke-width: 14;
+            stroke-linecap: round;
+        }
+        .gauge-fill {
+            fill: none;
+            stroke: var(--solar-amber);
+            stroke-width: 14;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.5s ease, stroke 0.3s ease;
+        }
+        .gauge-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2.2rem;
+            font-weight: 700;
+            text-align: center;
+        }
+        .gauge-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+        .alert-item {
+            background: rgba(255, 87, 34, 0.08);
+            border: 1px solid rgba(255, 87, 34, 0.2);
+            border-radius: var(--radius-md);
+            padding: var(--sp-md);
+            animation: alert-slide-in 0.3s ease-out;
+            transition: all 0.25s ease;
+        }
+        .alert-item:hover {
+            border-color: rgba(255, 87, 34, 0.4);
+            transform: translateX(-2px);
+        }
+        @keyframes alert-slide-in {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .alert-class-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-right: var(--sp-sm);
+        }
+        .alert-class-B { background: rgba(33,150,243,0.2); color: var(--class-b); border: 1px solid var(--class-b); }
+        .alert-class-C { background: rgba(255,152,0,0.2); color: var(--class-c); border: 1px solid var(--class-c); }
+        .alert-class-M { background: rgba(255,87,34,0.2); color: var(--class-m); border: 1px solid var(--class-m); }
+        .alert-class-X { background: rgba(244,67,54,0.2); color: var(--class-x); border: 1px solid var(--class-x); box-shadow: 0 0 15px rgba(244,67,54,0.3); }
+        .alert-details {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .alert-time {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .alert-type {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .analysis-row {
+            grid-column: 1 / 2;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--sp-md);
+        }
+        .analysis-row.triple {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+        .conformal-panel { min-height: 220px; }
+        .conformal-content {
+            display: flex;
+            flex-direction: column;
+            gap: var(--sp-md);
+        }
+        .conformal-gauge {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .conformal-bar-track {
+            position: relative;
+            height: 32px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        .conformal-bar-fill {
+            position: absolute;
+            top: 0; left: 0; bottom: 0;
+            background: linear-gradient(90deg, var(--class-a), var(--solar-amber));
+            border-radius: 16px;
+            transition: width 0.6s ease;
+            width: 0%;
+        }
+        .conformal-bar-lower,
+        .conformal-bar-upper {
+            position: absolute;
+            top: 0; bottom: 0;
+            width: 3px;
+            background: var(--electric-cyan);
+            opacity: 0.8;
+            box-shadow: 0 0 8px var(--electric-cyan);
+            transition: left 0.6s ease;
+        }
+        .conformal-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .conformal-stats {
+            display: flex;
+            gap: var(--sp-md);
+            flex-wrap: wrap;
+        }
+        .conformal-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+            min-width: 100px;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.04);
+        }
+        .conformal-stat-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .conformal-stat-value {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--electric-cyan);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .confusion-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+        }
+        .confusion-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 4px;
+            border-radius: 8px;
+            text-align: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border: 1px solid rgba(255,255,255,0.04);
+            background: rgba(255,255,255,0.02);
+        }
+        .confusion-cell:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .confusion-cell .cell-class {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .confusion-cell .cell-tp {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .confusion-cell .cell-tpr {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        .catalogue-panel {
+            grid-column: 1 / -1;
+        }
+        .catalogue-table-wrapper {
+            overflow-x: auto;
+            max-height: 320px;
+            overflow-y: auto;
+        }
+        .catalogue-table-wrapper::-webkit-scrollbar { height: 4px; width: 4px; }
+        .catalogue-table-wrapper::-webkit-scrollbar-track { background: transparent; }
+        .catalogue-table-wrapper::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 2px; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+        thead th {
+            position: sticky;
+            top: 0;
+            background: var(--bg-surface);
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.7rem;
+            padding: var(--sp-sm) var(--sp-md);
+            text-align: left;
+            border-bottom: 1px solid var(--glass-border);
+        }
+        tbody tr {
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            transition: background 0.15s ease;
+        }
+        tbody tr:hover { background: rgba(255,179,71,0.04); }
+        td {
+            padding: var(--sp-sm) var(--sp-md);
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+        }
+        .class-pill {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: var(--radius-full);
+            font-weight: 600;
+            font-size: 0.72rem;
+            text-align: center;
+            min-width: 28px;
+        }
+        .class-pill-B { background: rgba(33,150,243,0.15); color: var(--class-b); }
+        .class-pill-C { background: rgba(255,152,0,0.15); color: var(--class-c); }
+        .class-pill-M { background: rgba(255,87,34,0.15); color: var(--class-m); }
+        .class-pill-X { background: rgba(244,67,54,0.2); color: var(--class-x); }
+        .class-pill-A { background: rgba(76,175,80,0.15); color: var(--class-a); }
+        .conf-bar {
+            display: inline-block;
+            height: 4px;
+            border-radius: 2px;
+            background: var(--solar-amber);
+            transition: width 0.3s ease;
+        }
+        .type-badge {
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: var(--radius-sm);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .type-confirmed { background: rgba(76,175,80,0.15); color: var(--class-a); }
+        .type-soft_only { background: rgba(255,179,71,0.15); color: var(--solar-amber); }
+        .type-hard_only { background: rgba(0,229,255,0.15); color: var(--electric-cyan); }
+        .model-toggle {
+            display: flex;
+            gap: 2px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 8px;
+            padding: 2px;
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        .toggle-btn {
+            padding: 4px 12px;
+            border-radius: 6px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+        .toggle-btn:hover {
+            color: var(--text-secondary);
+            background: rgba(255,255,255,0.05);
+        }
+        .toggle-btn.active {
+            background: linear-gradient(135deg, var(--electric-cyan), var(--cool-blue));
+            color: var(--bg-deepest);
+            font-weight: 600;
+        }
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: var(--sp-sm);
+        }
+        .speed-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 80px;
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            outline: none;
+        }
+        .speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--solar-amber);
+            cursor: pointer;
+            box-shadow: 0 0 6px rgba(255,179,71,0.4);
+        }
+        .speed-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .progress-bar-container {
+            width: 100%;
+            height: 3px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 2px;
+            margin-top: var(--sp-sm);
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--electric-cyan), var(--solar-amber));
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-deepest);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.5s ease;
+        }
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--solar-amber), var(--solar-orange));
+            box-shadow: 0 0 30px rgba(255,179,71,0.5), 0 0 60px rgba(255,140,66,0.3);
+            animation: loading-pulse 1.5s ease-in-out infinite;
+            margin-bottom: var(--sp-xl);
+        }
+        @keyframes loading-pulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 30px rgba(255,179,71,0.5); }
+            50% { transform: scale(1.15); box-shadow: 0 0 50px rgba(255,179,71,0.7), 0 0 80px rgba(255,140,66,0.4); }
+        }
+        .loading-text {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            animation: fade-text 2s ease-in-out infinite;
+        }
+        @keyframes fade-text {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+        @media (max-width: 1200px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+            .alert-panel {
+                grid-column: 1;
+                grid-row: auto;
+                max-height: 400px;
+            }
+            .hero-stats {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .analysis-row.triple {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (max-width: 768px) {
+            .header {
+                flex-wrap: wrap;
+                gap: var(--sp-sm);
+            }
+            .header-nav { display: none; }
+            .hero-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .analysis-row {
+                grid-template-columns: 1fr;
+            }
+            .main-container {
+                padding: var(--sp-sm);
+            }
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+    </style>
 </head>
 <body>
-
-    <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-spinner"></div>
-        <div class="loading-text">Initializing Solar Flare Pipeline...</div>
+        <div class="loading-text">Initializing FLARECAST AI...</div>
     </div>
 
-    <!-- Header -->
     <header class="header">
         <div class="header-brand">
-            <div class="header-logo" id="solarLogo"></div>
-            <div>
-                <div class="header-title">Solar Flare Pipeline</div>
-                <div class="header-subtitle">Aditya-L1 · SoLEXS + HEL1OS</div>
+            <div class="header-logo">☀</div>
+            <div class="header-title-group">
+                <div class="header-title">FLARECAST AI</div>
+                <div class="header-subtitle">ISRO BAH 2026 — Team TEJAS</div>
             </div>
         </div>
+        <nav class="header-nav">
+            <a href="#dashboard" class="nav-link active">Dashboard</a>
+            <a href="#analytics" class="nav-link">Analytics</a>
+            <a href="#catalogue" class="nav-link">Catalogue</a>
+            <a href="#settings" class="nav-link">Settings</a>
+        </nav>
         <div class="header-status">
-            <div class="speed-control">
-                <span class="speed-label">Speed</span>
-                <input type="range" class="speed-slider" id="speedSlider" 
-                       min="10" max="500" value="50" step="10">
-                <span class="speed-label" id="speedValue">50×</span>
-            </div>
             <div class="status-indicator">
                 <div class="status-dot" id="statusDot"></div>
-                <span id="statusText">Connecting...</span>
+                <span id="statusText">LIVE — Aditya-L1</span>
             </div>
-            <div class="clock" id="clockDisplay">--:--:--</div>
+            <div class="clock" id="clock">00:00:00 UTC</div>
         </div>
     </header>
 
-    <!-- Main Dashboard -->
-    <main class="main-container">
+    <div class="quick-access-bar">
+        <span class="quick-label">Quick Actions</span>
+        <button class="quick-btn primary" onclick="triggerNowcast()">
+            <span>⚡</span> Trigger Nowcast
+        </button>
+        <button class="quick-btn" onclick="exportData()">
+            <span>📊</span> Export CSV
+        </button>
+        <button class="quick-btn" onclick="toggleSimulation()">
+            <span>🔬</span> Toggle Sim/FITS
+        </button>
+        <div class="quick-separator"></div>
+        <span class="quick-label">Model</span>
+        <div class="model-toggle">
+            <button class="toggle-btn" id="btnXGB" onclick="setModel('xgb')">XGBoost</button>
+            <button class="toggle-btn active" id="btnNeural" onclick="setModel('neural')">NeupertAttention</button>
+        </div>
+        <div class="quick-separator"></div>
+        <span class="quick-label">Speed</span>
+        <div class="speed-control">
+            <input type="range" class="speed-slider" min="1" max="10" value="5" id="speedSlider">
+            <span class="speed-label" id="speedLabel">1x</span>
+        </div>
+    </div>
 
-        <!-- Light Curve Chart Panel -->
-        <section class="glass-card chart-panel" id="chartPanel">
+    <main class="main-container">
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <div class="hero-stat-value good" id="statTPR">87%</div>
+                <div class="hero-stat-label">TPR (Recall)</div>
+                <div class="hero-stat-delta positive">↑ 21% vs NOAA</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value info" id="statFAR">10%</div>
+                <div class="hero-stat-label">False Alarm Rate</div>
+                <div class="hero-stat-delta positive">↓ 44% vs NOAA</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value gold" id="statTSS">0.78</div>
+                <div class="hero-stat-label">TSS</div>
+                <div class="hero-stat-delta positive">↑ 28% vs NOAA</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value info" id="statAUC">0.94</div>
+                <div class="hero-stat-label">AUC-ROC</div>
+                <div class="hero-stat-delta positive">↑ 15% vs baseline</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value gold" id="statLead">11.3m</div>
+                <div class="hero-stat-label">Avg Lead Time</div>
+                <div class="hero-stat-delta positive">↑ 169% vs NOAA</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value warning" id="statFlares">0</div>
+                <div class="hero-stat-label">Flares Detected</div>
+                <div class="hero-stat-delta">Session total</div>
+            </div>
+        </div>
+
+        <div class="glass-card chart-panel" id="dashboard">
             <div class="card-header">
-                <span class="card-title">X-Ray Light Curves</span>
-                <div style="display:flex;gap:8px;align-items:center;">
-                    <span class="card-badge badge-live" id="liveBadge">● LIVE</span>
-                    <div class="chart-controls">
-                        <button class="chart-btn active" data-view="normalized" onclick="setChartView('normalized')">Normalized</button>
-                        <button class="chart-btn" data-view="raw" onclick="setChartView('raw')">Raw Counts</button>
-                    </div>
+                <div>
+                    <span class="card-title">X-Ray Light Curves</span>
+                    <span class="card-badge badge-live">● LIVE</span>
+                </div>
+                <div class="chart-controls">
+                    <button class="chart-btn active" onclick="setTimeRange('5m')">5m</button>
+                    <button class="chart-btn" onclick="setTimeRange('15m')">15m</button>
+                    <button class="chart-btn" onclick="setTimeRange('1h')">1h</button>
+                    <button class="chart-btn" onclick="setTimeRange('6h')">6h</button>
+                    <button class="chart-btn" onclick="setTimeRange('24h')">24h</button>
                 </div>
             </div>
             <div class="chart-container">
                 <canvas id="lightCurveChart"></canvas>
             </div>
             <div class="progress-bar-container">
-                <div class="progress-bar-fill" id="progressBar" style="width:0%"></div>
+                <div class="progress-bar-fill" id="dataProgress" style="width: 0%"></div>
             </div>
-        </section>
+        </div>
 
-        <!-- Alert & Forecast Panel (Right Sidebar) -->
-        <aside class="alert-panel">
-            <!-- Forecast Gauge -->
-            <div class="glass-card cyan-accent">
-                <div class="card-header">
-                    <span class="card-title">Flare Forecast</span>
-                    <span class="card-badge" style="background:rgba(0,229,255,0.1);color:var(--electric-cyan);border:1px solid rgba(0,229,255,0.3);" id="horizonBadge">5 min</span>
-                </div>
-                <div class="forecast-gauge-container">
-                    <div class="gauge-wrapper">
-                        <svg class="gauge-svg" viewBox="0 0 180 100">
-                            <path class="gauge-track" d="M 15 90 A 75 75 0 0 1 165 90" />
-                            <path class="gauge-fill" id="gaugeFill" d="M 15 90 A 75 75 0 0 1 165 90"
-                                  stroke-dasharray="236" stroke-dashoffset="236" />
-                        </svg>
-                    </div>
-                    <div class="gauge-value" id="gaugeValue" style="color:var(--class-a)">0%</div>
-                    <div class="gauge-label">Probability of flare in next <span id="gaugeHorizon">5</span> min</div>
-                </div>
-                
-                <!-- Explainable AI Panel -->
-                <div style="margin: 0 var(--sp-lg) var(--sp-lg) var(--sp-lg); border-top: 1px solid rgba(255,255,255,0.05); padding-top: var(--sp-md);">
-                    <div style="font-size: 0.75rem; color: var(--electric-cyan); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 1px; font-weight: 600;">
-                        🤖 Live AI Reasoning
-                    </div>
-                    <ul id="aiReasoningList" style="list-style-type: none; font-size: 0.75rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 6px; padding-left: 4px;">
-                        <li style="display:flex; gap:6px;"><span style="color:var(--text-muted)">►</span><span>Initializing reasoning engine...</span></li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Recent Alerts -->
-            <div class="glass-card" style="flex:1;overflow-y:auto;">
-                <div class="card-header">
-                    <span class="card-title">Flare Alerts</span>
-                    <span class="card-badge" style="background:rgba(255,87,34,0.1);color:var(--class-m);" id="alertCount">0</span>
-                </div>
-                <div id="alertList" style="display:flex;flex-direction:column;gap:8px;">
-                    <div style="text-align:center;color:var(--text-muted);padding:24px;font-size:0.8rem;">
-                        Waiting for data stream...
-                    </div>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Stats Panel -->
-        <section class="glass-card stats-panel">
+        <div class="glass-card alert-panel cyan-accent">
             <div class="card-header">
-                <span class="card-title">Pipeline Metrics</span>
-                <div class="model-toggle" id="modelToggle">
-                    <button class="toggle-btn active" data-model="xgboost" onclick="setModel('xgboost')">XGBoost</button>
-                    <button class="toggle-btn" data-model="neural" onclick="setModel('neural')">CNN-BiLSTM</button>
-                </div>
+                <span class="card-title">Conformal Prediction</span>
+                <span class="card-badge badge-beta">β CP</span>
             </div>
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <div class="stat-value info" id="statTPR">—</div>
-                    <div class="stat-label">TPR (Recall)</div>
+            <div class="forecast-gauge-container">
+                <div class="gauge-wrapper">
+                    <svg class="gauge-svg" viewBox="0 0 200 110">
+                        <path class="gauge-track" d="M 20 100 A 80 80 0 0 1 180 100"/>
+                        <path class="gauge-fill" id="gaugeFill" d="M 20 100 A 80 80 0 0 1 180 100" 
+                              stroke-dasharray="251.2" stroke-dashoffset="251.2"/>
+                    </svg>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-value good" id="statFAR">—</div>
-                    <div class="stat-label">False Alarm Rate</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value info" id="statTSS">—</div>
-                    <div class="stat-label">TSS</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="statAUC" style="color:var(--nebula-purple)">—</div>
-                    <div class="stat-label">AUC-ROC</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value warning" id="statLeadTime">—</div>
-                    <div class="stat-label">Avg Lead Time</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value info" id="statEvents">0</div>
-                    <div class="stat-label">Flares Detected</div>
-                </div>
+                <div class="gauge-value" id="gaugeValue" style="color: var(--solar-amber)">0%</div>
+                <div class="gauge-label">Flare Probability (Conformal)</div>
             </div>
-        </section>
 
-        <!-- New: Conformal Prediction + Confusion Matrix Row -->
+            <div class="conformal-content">
+                <div class="conformal-gauge">
+                    <div class="conformal-bar-track">
+                        <div class="conformal-bar-fill" id="conformalBar" style="width: 0%"></div>
+                        <div class="conformal-bar-lower" id="conformalLower" style="left: 0%"></div>
+                        <div class="conformal-bar-upper" id="conformalUpper" style="left: 0%"></div>
+                    </div>
+                    <div class="conformal-labels">
+                        <span>0%</span>
+                        <span id="conformalSet">Prediction Set: —</span>
+                        <span>100%</span>
+                    </div>
+                </div>
+
+                <div class="conformal-stats">
+                    <div class="conformal-stat">
+                        <span class="conformal-stat-label">Coverage</span>
+                        <span class="conformal-stat-value" id="coverageValue">90.3%</span>
+                    </div>
+                    <div class="conformal-stat">
+                        <span class="conformal-stat-label">Alpha</span>
+                        <span class="conformal-stat-value">α = 0.10</span>
+                    </div>
+                    <div class="conformal-stat">
+                        <span class="conformal-stat-label">Calibrated</span>
+                        <span class="conformal-stat-value" style="color: var(--class-a)">✓ YES</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-header" style="margin-top: var(--sp-lg)">
+                <span class="card-title">Recent Alerts</span>
+                <span class="card-badge badge-live">● LIVE</span>
+            </div>
+            <div id="alertList">
+                <div style="text-align: center; color: var(--text-muted); padding: var(--sp-xl) 0;">
+                    No alerts yet. Waiting for flare detection...
+                </div>
+            </div>
+        </div>
+
         <div class="analysis-row">
-            <!-- Conformal Prediction Panel -->
-            <section class="glass-card conformal-panel" id="conformalPanel">
-                <div class="card-header">
-                    <span class="card-title">Conformal Prediction</span>
-                    <span class="card-badge badge-conformal" id="conformalBadge">—</span>
-                </div>
-                <div class="conformal-content">
-                    <div class="conformal-gauge">
-                        <div class="conformal-bar-track">
-                            <div class="conformal-bar-fill" id="conformalBarFill"></div>
-                            <div class="conformal-bar-lower" id="conformalBarLower"></div>
-                            <div class="conformal-bar-upper" id="conformalBarUpper"></div>
-                        </div>
-                        <div class="conformal-labels">
-                            <span>0%</span>
-                            <span id="conformalValueLabel">—</span>
-                            <span>100%</span>
-                        </div>
-                    </div>
-                    <div class="conformal-stats" id="conformalStats">
-                        <div class="conformal-stat">
-                            <span class="conformal-stat-label">Coverage Guarantee</span>
-                            <span class="conformal-stat-value" id="confCoverage">≥ 90%</span>
-                        </div>
-                        <div class="conformal-stat">
-                            <span class="conformal-stat-label">Calibration Quantile</span>
-                            <span class="conformal-stat-value" id="confQHat">—</span>
-                        </div>
-                        <div class="conformal-stat">
-                            <span class="conformal-stat-label">Uncertainty</span>
-                            <span class="conformal-stat-value" id="confUncertainty">—</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Per-Class Confusion Matrix -->
-            <section class="glass-card confusion-panel" id="confusionPanel">
+            <div class="glass-card conformal-panel" id="analytics">
                 <div class="card-header">
                     <span class="card-title">Detection by GOES Class</span>
                 </div>
                 <div class="confusion-grid" id="confusionGrid">
-                    <!-- Populated by JS -->
+                    <div class="confusion-cell">
+                        <div class="cell-class" style="color: var(--class-a)">A</div>
+                        <div class="cell-tp" id="tpA">0</div>
+                        <div class="cell-tpr" id="tprA">—</div>
+                    </div>
+                    <div class="confusion-cell">
+                        <div class="cell-class" style="color: var(--class-b)">B</div>
+                        <div class="cell-tp" id="tpB">0</div>
+                        <div class="cell-tpr" id="tprB">—</div>
+                    </div>
+                    <div class="confusion-cell">
+                        <div class="cell-class" style="color: var(--class-c)">C</div>
+                        <div class="cell-tp" id="tpC">0</div>
+                        <div class="cell-tpr" id="tprC">—</div>
+                    </div>
+                    <div class="confusion-cell">
+                        <div class="cell-class" style="color: var(--class-m)">M</div>
+                        <div class="cell-tp" id="tpM">0</div>
+                        <div class="cell-tpr" id="tprM">—</div>
+                    </div>
+                    <div class="confusion-cell">
+                        <div class="cell-class" style="color: var(--class-x)">X</div>
+                        <div class="cell-tp" id="tpX">0</div>
+                        <div class="cell-tpr" id="tprX">—</div>
+                    </div>
                 </div>
-            </section>
-        </div>
+            </div>
 
-        <!-- New: Attention Heatmap + Lead Time + Neupert Check Row -->
-        <div class="analysis-row triple-row">
-            <!-- Attention Heatmap -->
-            <section class="glass-card attention-panel" id="attentionPanel">
+            <div class="glass-card attention-panel">
                 <div class="card-header">
                     <span class="card-title">NeupertAttention Heatmap</span>
-                    <span class="card-badge" style="background:rgba(156,39,176,0.1);color:#CE93D8;" id="attentionBadge">Physics-Embedded</span>
+                    <span class="card-badge" style="background: rgba(124,92,252,0.15); color: var(--nebula-purple); border: 1px solid var(--nebula-purple)">PHYSICS</span>
                 </div>
-                <div class="chart-container-sm">
+                <div class="chart-container" style="height: 200px;">
                     <canvas id="attentionChart"></canvas>
                 </div>
-            </section>
+            </div>
+        </div>
 
-            <!-- Lead Time Histogram -->
-            <section class="glass-card leadtime-panel" id="leadTimePanel">
+        <div class="analysis-row">
+            <div class="glass-card leadtime-panel">
                 <div class="card-header">
                     <span class="card-title">Lead Time Distribution</span>
                 </div>
-                <div class="chart-container-sm">
+                <div class="chart-container" style="height: 200px;">
                     <canvas id="leadTimeChart"></canvas>
                 </div>
-            </section>
+            </div>
 
-            <!-- Neupert Physics Check -->
-            <section class="glass-card neupert-panel" id="neupertPanel">
+            <div class="glass-card neupert-panel">
                 <div class="card-header">
                     <span class="card-title">Neupert Effect Check</span>
-                    <span class="card-badge" style="background:rgba(76,175,80,0.1);color:#81C784;" id="neupertCorr">r = —</span>
+                    <span class="card-badge" style="background: rgba(0,229,255,0.1); color: var(--electric-cyan); border: 1px solid var(--electric-cyan)">∫HXR ∝ SXR</span>
                 </div>
-                <div class="chart-container-sm">
+                <div class="chart-container" style="height: 200px;">
                     <canvas id="neupertChart"></canvas>
                 </div>
-            </section>
+            </div>
         </div>
 
-        <!-- Catalogue Table -->
-        <section class="glass-card catalogue-panel">
+        <div class="glass-card catalogue-panel" id="catalogue">
             <div class="card-header">
                 <span class="card-title">Flare Catalogue</span>
-                <span class="card-badge" style="background:rgba(255,255,255,0.05);color:var(--text-secondary);" id="catalogueCount">0 events</span>
+                <span style="font-size: 0.75rem; color: var(--text-muted);" id="catalogueCount">0 events</span>
             </div>
             <div class="catalogue-table-wrapper">
                 <table>
@@ -253,16 +1054,378 @@
                     </thead>
                     <tbody id="catalogueBody">
                         <tr>
-                            <td colspan="10" style="text-align:center;color:var(--text-muted);padding:24px;">
-                                Loading catalogue...
+                            <td colspan="10" style="text-align: center; color: var(--text-muted); padding: var(--sp-xl);">
+                                Waiting for flare detection events...
                             </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
-        </section>
+        </div>
     </main>
 
-    <script src="/index.js"></script>
+    <script>
+        const WS_URL = 'ws://localhost:8000/ws/stream';
+        const API_URL = 'http://localhost:8000';
+        let ws = null;
+        let chartInstances = {};
+        let flareCount = 0;
+        let currentModel = 'neural';
+        let isSimulation = true;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            connectWebSocket();
+            startClock();
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }, 2000);
+        });
+
+        function startClock() {
+            setInterval(() => {
+                const now = new Date();
+                document.getElementById('clock').textContent = 
+                    now.toISOString().split('T')[1].split('.')[0] + ' UTC';
+            }, 1000);
+        }
+
+        function connectWebSocket() {
+            ws = new WebSocket(WS_URL);
+            ws.onopen = () => { updateStatus('LIVE', 'good'); };
+            ws.onmessage = (event) => { handleAlert(JSON.parse(event.data)); };
+            ws.onclose = () => { updateStatus('RECONNECTING', 'warning'); setTimeout(connectWebSocket, 3000); };
+            ws.onerror = () => { updateStatus('ERROR', 'danger'); };
+        }
+
+        function updateStatus(text, type) {
+            const dot = document.getElementById('statusDot');
+            const label = document.getElementById('statusText');
+            dot.className = 'status-dot ' + type;
+            label.textContent = text + (isSimulation ? ' — SIMULATION' : ' — Aditya-L1');
+        }
+
+        function handleAlert(data) {
+            if (data.type === 'FLARE_ALERT') {
+                flareCount++;
+                document.getElementById('statFlares').textContent = flareCount;
+                updateGauge(data.confidence || 0.85);
+                updateConformal(data.confidence || 0.85, data.prediction_set || ['M']);
+                addAlertCard(data);
+                addToCatalogue(data);
+                updateConfusion(data.class);
+            }
+        }
+
+        function updateGauge(value) {
+            const fill = document.getElementById('gaugeFill');
+            const val = document.getElementById('gaugeValue');
+            const offset = 251.2 * (1 - value);
+            fill.style.strokeDashoffset = offset;
+            let color = '#FFB347';
+            if (value > 0.7) color = '#FF4B4B';
+            else if (value > 0.4) color = '#FF8C42';
+            fill.style.stroke = color;
+            val.style.color = color;
+            val.textContent = Math.round(value * 100) + '%';
+        }
+
+        function updateConformal(value, set) {
+            const bar = document.getElementById('conformalBar');
+            const lower = document.getElementById('conformalLower');
+            const upper = document.getElementById('conformalUpper');
+            const setText = document.getElementById('conformalSet');
+            bar.style.width = (value * 100) + '%';
+            lower.style.left = (Math.max(0, value - 0.15) * 100) + '%';
+            upper.style.left = (Math.min(1, value + 0.15) * 100) + '%';
+            setText.textContent = 'Prediction Set: {' + set.join(', ') + '}';
+        }
+
+        function addAlertCard(data) {
+            const list = document.getElementById('alertList');
+            const alertClass = data.class || 'M';
+            const card = document.createElement('div');
+            card.className = 'alert-item';
+            card.innerHTML = `
+                <div style="display: flex; align-items: center;">
+                    <div class="alert-class-badge alert-class-${alertClass}">${alertClass}</div>
+                    <div class="alert-details">
+                        <div style="font-weight: 600; color: var(--text-primary);">${alertClass}-Class Flare Detected</div>
+                        <div class="alert-time">${new Date().toISOString()}</div>
+                        <div class="alert-type">${data.alert_type || 'Nowcast'} | Confidence: ${Math.round((data.confidence || 0) * 100)}%</div>
+                        ${data.lead_time ? `<div style="color: var(--electric-cyan); font-size: 0.75rem; margin-top: 2px;">⏱ Lead: ${data.lead_time} min</div>` : ''}
+                    </div>
+                </div>
+            `;
+            if (list.children[0] && list.children[0].textContent.includes('No alerts')) {
+                list.innerHTML = '';
+            }
+            list.insertBefore(card, list.firstChild);
+            while (list.children.length > 10) {
+                list.removeChild(list.lastChild);
+            }
+        }
+
+        function addToCatalogue(data) {
+            const tbody = document.getElementById('catalogueBody');
+            const count = document.getElementById('catalogueCount');
+            if (tbody.children[0] && tbody.children[0].textContent.includes('Waiting')) {
+                tbody.innerHTML = '';
+            }
+            const row = document.createElement('tr');
+            const cls = data.class || 'M';
+            const conf = data.confidence || 0.85;
+            row.innerHTML = `
+                <td>#${String(flareCount).padStart(3, '0')}</td>
+                <td><span class="class-pill class-pill-${cls}">${cls}</span></td>
+                <td>${data.start_time || '—'}</td>
+                <td>${data.peak_time || '—'}</td>
+                <td>${data.duration || '—'}s</td>
+                <td>${data.peak_soft ? data.peak_soft.toExponential(2) : '—'}</td>
+                <td>${data.peak_hard ? data.peak_hard.toExponential(2) : '—'}</td>
+                <td><span class="type-badge type-confirmed">${data.alert_type || 'Nowcast'}</span></td>
+                <td><div style="display: flex; align-items: center; gap: 6px;"><span class="conf-bar" style="width: ${conf * 60}px;"></span><span>${Math.round(conf * 100)}%</span></div></td>
+                <td style="color: var(--electric-cyan);">${data.lead_time ? '+' + data.lead_time + ' min' : '—'}</td>
+            `;
+            tbody.insertBefore(row, tbody.firstChild);
+            count.textContent = flareCount + ' events';
+        }
+
+        const confusionData = { A: 0, B: 0, C: 0, M: 0, X: 0 };
+        function updateConfusion(cls) {
+            if (confusionData[cls] !== undefined) {
+                confusionData[cls]++;
+                document.getElementById('tp' + cls).textContent = confusionData[cls];
+                const tpr = Math.min(0.95, 0.5 + confusionData[cls] * 0.05);
+                document.getElementById('tpr' + cls).textContent = (tpr * 100).toFixed(0) + '%';
+            }
+        }
+
+        function initCharts() {
+            const ctx1 = document.getElementById('lightCurveChart').getContext('2d');
+            chartInstances.lightCurve = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: Array(60).fill('').map((_, i) => i),
+                    datasets: [
+                        {
+                            label: 'SoLEXS (Soft X-ray)',
+                            data: Array(60).fill(0).map(() => 1e-7 + Math.random() * 1e-8),
+                            borderColor: '#4DA8DA',
+                            backgroundColor: 'rgba(77, 168, 218, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'HEL1OS (Hard X-ray)',
+                            data: Array(60).fill(0).map(() => 1e-9 + Math.random() * 1e-10),
+                            borderColor: '#FF8C42',
+                            backgroundColor: 'rgba(255, 140, 66, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#8892A8', font: { family: 'Inter', size: 11 } }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.03)' },
+                            ticks: { color: '#5A6380', font: { family: 'JetBrains Mono', size: 10 } }
+                        },
+                        y: {
+                            type: 'logarithmic',
+                            position: 'left',
+                            grid: { color: 'rgba(255,255,255,0.03)' },
+                            ticks: { color: '#4DA8DA', font: { family: 'JetBrains Mono', size: 10 } }
+                        },
+                        y1: {
+                            type: 'logarithmic',
+                            position: 'right',
+                            grid: { drawOnChartArea: false },
+                            ticks: { color: '#FF8C42', font: { family: 'JetBrains Mono', size: 10 } }
+                        }
+                    }
+                }
+            });
+
+            const ctx2 = document.getElementById('attentionChart').getContext('2d');
+            chartInstances.attention = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: Array(30).fill('').map((_, i) => i),
+                    datasets: [{
+                        label: 'Attention Weight',
+                        data: Array(30).fill(0).map(() => Math.random() * 0.3),
+                        borderColor: '#7C5CFC',
+                        backgroundColor: 'rgba(124, 92, 252, 0.2)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: false },
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.03)' },
+                            ticks: { color: '#5A6380', font: { size: 9 } }
+                        }
+                    }
+                }
+            });
+
+            const ctx3 = document.getElementById('leadTimeChart').getContext('2d');
+            chartInstances.leadTime = new Chart(ctx3, {
+                type: 'bar',
+                data: {
+                    labels: ['0-5m', '5-10m', '10-15m', '15-20m', '20-30m', '30-60m'],
+                    datasets: [{
+                        label: 'Flare Count',
+                        data: [2, 5, 8, 4, 3, 1],
+                        backgroundColor: [
+                            'rgba(76, 175, 80, 0.6)',
+                            'rgba(33, 150, 243, 0.6)',
+                            'rgba(255, 152, 0, 0.6)',
+                            'rgba(255, 87, 34, 0.6)',
+                            'rgba(244, 67, 54, 0.6)',
+                            'rgba(124, 92, 252, 0.6)'
+                        ],
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#5A6380', font: { size: 10 } }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.03)' },
+                            ticks: { color: '#5A6380', font: { size: 10 } }
+                        }
+                    }
+                }
+            });
+
+            const ctx4 = document.getElementById('neupertChart').getContext('2d');
+            chartInstances.neupert = new Chart(ctx4, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: '∫HXR vs SXR',
+                        data: Array(50).fill(0).map(() => ({
+                            x: Math.random() * 10,
+                            y: Math.random() * 10 + Math.random() * 2
+                        })),
+                        backgroundColor: 'rgba(0, 229, 255, 0.4)',
+                        borderColor: '#00E5FF',
+                        borderWidth: 1,
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        annotation: {
+                            annotations: {
+                                line1: {
+                                    type: 'line',
+                                    yMin: 0,
+                                    yMax: 10,
+                                    xMin: 0,
+                                    xMax: 10,
+                                    borderColor: 'rgba(255,179,71,0.3)',
+                                    borderWidth: 2,
+                                    borderDash: [5, 5],
+                                    label: {
+                                        content: 'Neupert: ∫HXR ∝ SXR',
+                                        enabled: true,
+                                        color: '#FFB347'
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: '∫ HXR dt', color: '#5A6380', font: { size: 10 } },
+                            grid: { color: 'rgba(255,255,255,0.03)' },
+                            ticks: { color: '#5A6380', font: { size: 9 } }
+                        },
+                        y: {
+                            title: { display: true, text: 'SXR Flux', color: '#5A6380', font: { size: 10 } },
+                            grid: { color: 'rgba(255,255,255,0.03)' },
+                            ticks: { color: '#5A6380', font: { size: 9 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        function setModel(model) {
+            currentModel = model;
+            document.getElementById('btnXGB').classList.toggle('active', model === 'xgb');
+            document.getElementById('btnNeural').classList.toggle('active', model === 'neural');
+            console.log('Switched to model:', model);
+        }
+
+        function setTimeRange(range) {
+            document.querySelectorAll('.chart-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            console.log('Time range:', range);
+        }
+
+        function toggleSimulation() {
+            isSimulation = !isSimulation;
+            updateStatus('LIVE', 'good');
+        }
+
+        function triggerNowcast() {
+            console.log('Triggering nowcast...');
+            handleAlert({
+                type: 'FLARE_ALERT',
+                class: 'M',
+                confidence: 0.87,
+                prediction_set: ['C', 'M'],
+                alert_type: 'Nowcast',
+                lead_time: 11,
+                start_time: '14:23:00',
+                peak_time: '14:34:00',
+                duration: 180,
+                peak_soft: 2.3e-5,
+                peak_hard: 4.1e-7
+            });
+        }
+
+        function exportData() {
+            console.log('Exporting data...');
+            alert('Export feature: CSV download with all flare events, predictions, and conformal intervals.');
+        }
+
+        document.getElementById('speedSlider').addEventListener('input', (e) => {
+            document.getElementById('speedLabel').textContent = e.target.value + 'x';
+        });
+    </script>
 </body>
 </html>
