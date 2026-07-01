@@ -64,6 +64,9 @@ try:
 except ImportError:
     HAS_TORCH = False
 
+if os.environ.get('RENDER'):
+    HAS_TORCH = False
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
