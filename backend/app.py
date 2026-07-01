@@ -69,8 +69,8 @@ except ImportError:
 # ---------------------------------------------------------------------------
 DATA_MODE = os.environ.get('DATA_MODE', 'simulation')  # 'simulation' or 'fits'
 FITS_DIR = os.environ.get('FITS_DIR', r'I:\ISRO ADITYA')
-SIM_HOURS = float(os.environ.get('SIM_HOURS', '48'))
-SIM_FLARES = int(os.environ.get('SIM_FLARES', '12'))
+SIM_HOURS = float(os.environ.get('SIM_HOURS', '12'))
+SIM_FLARES = int(os.environ.get('SIM_FLARES', '3'))
 FORECAST_HORIZON = int(os.environ.get('FORECAST_HORIZON', '300'))  # seconds
 STREAM_SPEED = float(os.environ.get('STREAM_SPEED', '50'))  # data points per push
 
